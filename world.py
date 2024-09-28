@@ -8,6 +8,10 @@ class World:
         self.obstacles = set()
         self.items = {}
         self.generate_world()
+        self.text_triggers = {
+            (5, 5): ["You found a mysterious note.", "It reads: 'Beware of the shadows.'"],
+            (15, 10): ["A cold wind blows through the area.", "You hear whispers in the distance."],
+        }
 
     def generate_world(self):
         # Generate obstacles
@@ -34,3 +38,8 @@ class World:
     def remove_item(self, x, y):
         if (x, y) in self.items:
             del self.items[(x, y)]
+
+    def check_text_trigger(self, x, y):
+        if (x, y) in self.text_triggers:
+            return self.text_triggers[(x, y)]
+        return None

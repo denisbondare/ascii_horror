@@ -11,6 +11,7 @@ class SoundSystem:
             "item_pickup": self.generate_item_pickup_sound(),
             "footstep": self.generate_footstep_sound(),
             "ambient": self.generate_ambient_sound(),
+            "typing": self.generate_typing_sound(),
         }
         self.music = {
             "ambient_horror": self.generate_ambient_horror_music(),
@@ -79,3 +80,10 @@ class SoundSystem:
 
     def stop_music(self):
         self.music_channel.stop()
+
+    def generate_typing_sound(self):
+        duration = 0.05
+        noise = self.generate_noise(duration)
+        envelope = np.linspace(1, 0, int(self.sample_rate * duration))
+        mono = noise * envelope * 0.3
+        return self.to_stereo(mono)

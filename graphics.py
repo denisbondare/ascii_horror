@@ -5,6 +5,7 @@ class Graphics:
     def __init__(self, width, height):
         self.width = width
         self.height = height
+        self.game_height = height - 3  # Reserve 3 lines for text
         self.buffer = [[' ' for _ in range(width)] for _ in range(height)]
         self.previous_buffer = None
 
@@ -35,7 +36,7 @@ class Graphics:
             self.draw_char(x + i, y, char)
 
     def draw_world(self, world, player, visibility_radius):
-        for y in range(self.height):
+        for y in range(self.game_height):
             for x in range(self.width):
                 if is_visible(player.x, player.y, x, y, visibility_radius):
                     if world.is_obstacle(x, y):
@@ -44,6 +45,17 @@ class Graphics:
                         self.draw_char(x, y, world.items[(x, y)])
                 else:
                     self.draw_char(x, y, ' ')
+
+    def draw_text_area(self):
+        for x in range(self.width):
+            self.draw_char(x, self.game_height, '-')
+        self.draw_char(0, self.game_height, '+')
+        self.draw_char(self.width - 1, self.game_height, '+')
+
+    def draw_animated_text(self, text, current_char):
+        self.draw_text_area()
+        displayed_text = text[:current_char]
+        self.draw_text(1, self.game_height + 1, displayed_text)
 
     def draw_animated_background(self, t):
         for y in range(self.height):
