@@ -59,30 +59,30 @@ class Graphics:
         player_screen_x = self.width // 2
         player_screen_y = self.game_height // 2
 
-        for y in range(self.height):
-            for x in range(self.width):
-                world_x = player.x + (x - player_screen_x)
-                world_y = player.y + (y - player_screen_y)
+        for screen_y in range(self.height):
+            for screen_x in range(self.width):
+                world_x = player.x + (screen_x - player_screen_x)
+                world_y = player.y + (screen_y - player_screen_y)
                 
-                if y in self.corrupted_lines:
-                    self.draw_char(x, y, random.choice('!@#$%^&*()_+-={}[]|\\:;"\'<>,.?/'))
-                elif (x, y) in self.distortion_map:
-                    self.draw_char(x, y, self.distortion_map[(x, y)][0])
+                if screen_y in self.corrupted_lines:
+                    self.draw_char(screen_x, screen_y, random.choice('!@#$%^&*()_+-={}[]|\\:;"\'<>,.?/'))
+                elif (screen_x, screen_y) in self.distortion_map:
+                    self.draw_char(screen_x, screen_y, self.distortion_map[(screen_x, screen_y)][0])
                 elif 0 <= world_x < world.width and 0 <= world_y < world.height:
-                    if is_visible(player_screen_x, player_screen_y, x, y, visibility_radius):
+                    if is_visible(player.x, player.y, world_x, world_y, visibility_radius, world):
                         if world.is_obstacle(world_x, world_y):
-                            self.draw_char(x, y, '▓')
+                            self.draw_char(screen_x, screen_y, '▓')
                         elif (world_x, world_y) in world.items:
-                            self.draw_char(x, y, world.items[(world_x, world_y)])
+                            self.draw_char(screen_x, screen_y, world.items[(world_x, world_y)])
                         else:
-                            self.draw_char(x, y, ' ')
+                            self.draw_char(screen_x, screen_y, ' ')
                     else:
-                        if (x, y) in self.unseen_distortions:
-                            self.draw_char(x, y, self.unseen_distortions[(x, y)][0])
+                        if (screen_x, screen_y) in self.unseen_distortions:
+                            self.draw_char(screen_x, screen_y, self.unseen_distortions[(screen_x, screen_y)][0])
                         else:
-                            self.draw_char(x, y, '░')
+                            self.draw_char(screen_x, screen_y, '░')
                 else:
-                    self.draw_char(x, y, ' ')
+                    self.draw_char(screen_x, screen_y, ' ')
 
         # Draw player in the center
         self.draw_char(player_screen_x, player_screen_y, player.char)
