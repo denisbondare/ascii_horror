@@ -77,21 +77,33 @@ def main_menu():
     graphics = Graphics(42, 22)
     sound_system = SoundSystem()
     sound_system.play_music("ambient_horror")
-    while True:
+    t = 0
+    running = True
+    while running:
+        start_time = time.time()
+        
         graphics.clear()
+        graphics.draw_animated_background(t)
         graphics.draw_borders()
         graphics.draw_text(16, 9, "ASCII Horror")
         graphics.draw_text(18, 11, "1. Start")
         graphics.draw_text(18, 12, "2. Quit")
         graphics.render()
 
-        event = keyboard.read_event(suppress=True)
-        if event.event_type == keyboard.KEY_DOWN:
-            if event.name == '1':
-                return True
-            elif event.name == '2':
-                sound_system.stop_music()
-                return False
+        t += 0.1  # Increment time for animation
+
+        if keyboard.is_pressed('1'):
+            return True
+        elif keyboard.is_pressed('2'):
+            sound_system.stop_music()
+            return False
+
+        # Limit the frame rate to about 20 FPS
+        elapsed_time = time.time() - start_time
+        if elapsed_time < 0.05:
+            time.sleep(0.05 - elapsed_time)
+
+    return False
 
 if __name__ == "__main__":
     if main_menu():

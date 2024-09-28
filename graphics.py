@@ -1,5 +1,5 @@
 import os
-from utils import is_visible
+from utils import is_visible, generate_perlin_noise, get_wave_char
 
 class Graphics:
     def __init__(self, width, height):
@@ -44,3 +44,10 @@ class Graphics:
                         self.draw_char(x, y, world.items[(x, y)])
                 else:
                     self.draw_char(x, y, ' ')
+
+    def draw_animated_background(self, t):
+        for y in range(self.height):
+            for x in range(self.width):
+                value = generate_perlin_noise(x, y, t)
+                char = get_wave_char(value)
+                self.draw_char(x, y, char)
