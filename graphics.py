@@ -63,3 +63,8 @@ class Graphics:
                 value = generate_perlin_noise(x, y, t)
                 char = get_wave_char(value)
                 self.draw_char(x, y, char)
+
+    def draw_stats(self, samples_collected, total_samples, temperature, humidity, signal_strength):
+        self.draw_text_area()
+        stats_text = f"S: {samples_collected}/{total_samples} | T: {temperature:.1f}°C | H: {humidity}% | S: {signal_strength}%"
+        self.draw_text(1, self.game_height + 1, stats_text)

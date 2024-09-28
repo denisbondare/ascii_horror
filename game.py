@@ -1,6 +1,7 @@
 import keyboard
 import time
 import pygame
+import random
 from graphics import Graphics
 from player import Player
 from world import World
@@ -28,6 +29,7 @@ class Game:
         self.intro_text = [            
             "Depth: 2,743 meters below surface.",
             "Temperature: 57°C. Humidity: 98%.",
+            "Signal strength: 80%.",
             "Mission: Collect 50 material samples.",
             "Arrow keys to control machine.",
             "Automatic evacuation upon completion.",
@@ -36,6 +38,14 @@ class Game:
         ]
         self.show_intro = True
         self.text_fully_displayed = False
+        self.samples_collected = 0
+        self.total_samples = 50
+        self.temperature = 57.0
+        self.humidity = 98
+        self.signal_strength = 80
+        self.temp_direction = random.choice([-1, 1])
+        self.humidity_direction = random.choice([-1, 1])
+        self.update_counter = 0
 
     def handle_input(self):
         if self.text_display_active:
@@ -88,6 +98,24 @@ class Game:
         if item:
             self.sound_system.play_sound("item_pickup")
             self.world.remove_item(self.player.x, self.player.y)
+            self.samples_collected += 1
+        # Update temperature and humidity less frequently
+        self.update_counter += 1
+        if self.update_counter >= 10:  # Update every 10 frames
+            # Update temperature
+            self.temperature += self.temp_direction * random.uniform(0.1, 0.2)
+            if self.temperature <= 57.0 or self.temperature >= 59.0:
+                self.temp_direction *= -1
+            self.temperature = max(57.0, min(59.0, self.temperature))
+
+            # Update humidity
+            if random.random() < 0.3:  # 30% chance to change humidity each update
+                self.humidity += self.humidity_direction
+                if self.humidity <= 96 or self.humidity >= 99:
+                    self.humidity_direction *= -1
+                self.humidity = max(96, min(99, self.humidity))
+
+            self.update_counter = 0
 
         # Check for text triggers
         text_event = self.world.check_text_trigger(self.player.x, self.player.y)
@@ -102,6 +130,8 @@ class Game:
         
         if self.text_display_active:
             self.graphics.draw_animated_text(self.current_text, self.text_index)
+        else:
+            self.graphics.draw_stats(self.samples_collected, self.total_samples, self.temperature, self.humidity, self.signal_strength)
         
         self.graphics.render()
 
@@ -145,9 +175,11 @@ def main_menu():
         graphics.clear()
         graphics.draw_animated_background(t)
         graphics.draw_borders()
-        graphics.draw_text(16, 9, "ASCII Horror")
-        graphics.draw_text(18, 11, "1. Start")
-        graphics.draw_text(18, 12, "2. Quit")
+        graphics.draw_text(12, 0, f"SYS: {time.strftime('%H:%M:%S')} | MEM: 64kb")
+        graphics.draw_text(8, 9, "SMI-1980 Operating Interface")
+        graphics.draw_text(12, 11, "1. Initialize")
+        graphics.draw_text(12, 12, "2. Terminate")
+        graphics.draw_text(14, 21, "v1.19 | 1980 | Subterra LTD")
         graphics.render()
 
         t += 0.1  # Increment time for animation

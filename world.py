@@ -38,6 +38,19 @@ class World:
     def remove_item(self, x, y):
         if (x, y) in self.items:
             del self.items[(x, y)]
+            return True
+        return False
+
+    def generate_new_item(self):
+        items = ['!', '?', '*']
+        x, y = get_random_position(self.width, self.height)
+        attempts = 0
+        while attempts < 100:  # Limit attempts to avoid infinite loop
+            if (x, y) not in self.obstacles and (x, y) not in self.items:
+                self.items[(x, y)] = random.choice(items)
+                return
+            x, y = get_random_position(self.width, self.height)
+            attempts += 1
 
     def check_text_trigger(self, x, y):
         if (x, y) in self.text_triggers:
