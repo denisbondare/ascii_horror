@@ -1,5 +1,6 @@
 import os
 from utils import is_visible, generate_perlin_noise, get_wave_char
+from config import *
 
 class Graphics:
     def __init__(self, width, height):
@@ -17,11 +18,11 @@ class Graphics:
 
     def draw_borders(self):
         for x in range(self.width):
-            self.draw_char(x, 0, '-')
-            self.draw_char(x, self.height - 1, '-')
+            self.draw_char(x, 0, BORDER_CHAR)
+            self.draw_char(x, self.height - 1, BORDER_CHAR)
         for y in range(self.height):
-            self.draw_char(0, y, '|')
-            self.draw_char(self.width - 1, y, '|')
+            self.draw_char(0, y, VERTICAL_BORDER_CHAR)
+            self.draw_char(self.width - 1, y, VERTICAL_BORDER_CHAR)
 
     def render(self):
         if self.buffer != self.previous_buffer:
@@ -39,7 +40,7 @@ class Graphics:
             for x in range(self.width):
                 if is_visible(player.x, player.y, x, y, visibility_radius):
                     if world.is_obstacle(x, y):
-                        self.draw_char(x, y, '#')
+                        self.draw_char(x, y, OBSTACLE_CHAR)
                     elif (x, y) in world.items:
                         self.draw_char(x, y, world.items[(x, y)])
                 else:
