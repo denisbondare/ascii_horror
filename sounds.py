@@ -6,6 +6,7 @@ import random
 
 class SoundSystem:
     def __init__(self):
+        self.enabled = True  # New variable to control sound system
         self.sample_rate = 44100
         pygame.mixer.init(frequency=self.sample_rate, size=-16, channels=2, buffer=1024)
         self.sounds = {
@@ -150,6 +151,8 @@ class SoundSystem:
         return self.to_stereo(combined)
 
     def update_distortion(self, signal_strength):
+        if not self.enabled:
+            return
         self.distortion_intensity = min(1,max(0, 1 - (signal_strength**1.05 / 100)))
         if self.distortion_intensity > 0:
             if not self.distortion_channel.get_busy():
@@ -160,6 +163,8 @@ class SoundSystem:
             self.distortion_channel.stop()
 
     def apply_distortion_to_sound(self, sound):
+        if not self.enabled:
+            return sound
         if self.distortion_intensity > 0:
             noise = self.generate_noise(len(sound) / self.sample_rate) * self.distortion_intensity * 0.3
             distorted_sound = sound + noise[:, np.newaxis]
@@ -167,12 +172,16 @@ class SoundSystem:
         return sound
 
     def play_sound(self, sound_name):
+        if not self.enabled:
+            return
         if sound_name in self.sounds:
             self.sound_queue.put(sound_name)
 
     def _sound_worker(self):
         while True:
             sound_info = self.sound_queue.get()
+            if not self.enabled:
+                continue
             if isinstance(sound_info, tuple):
                 sound_name, pygame_sound = sound_info
                 pygame_sound.play()
@@ -184,12 +193,16 @@ class SoundSystem:
                     pygame_sound.play()
 
     def play_music(self, music_name):
+        if not self.enabled:
+            return
         if music_name in self.music:
             music = self.music[music_name]
             pygame_music = pygame.sndarray.make_sound((music * 32767).astype(np.int16))
             self.music_channel.play(pygame_music, loops=-1)
 
     def stop_music(self):
+        if not self.enabled:
+            return
         self.music_channel.stop()
 
     def generate_typing_sound(self):
@@ -211,6 +224,8 @@ class SoundSystem:
         return sounds
 
     def update_ambient_sounds(self, delta_time):
+        if not self.enabled:
+            return
         self.ambient_timer += delta_time
         if self.ambient_timer >= self.get_ambient_interval():
             self.ambient_timer = 0
@@ -221,11 +236,15 @@ class SoundSystem:
         return max(0.5, 5 * (self.signal_strength / 100))
 
     def play_random_ambient_sound(self):
+        if not self.enabled:
+            return
         if random.random() < 1 - (self.signal_strength / 100):
             sound = random.choice(self.ambient_sounds)
             self.ambient_channel.play(sound)
 
     def update_signal_strength(self, signal_strength):
+        if not self.enabled:
+            return
         self.signal_strength = signal_strength
         # Adjust the volume of the background noise
         noise_volume = 1 - (signal_strength / 100)
@@ -252,6 +271,8 @@ class SoundSystem:
         return self.to_stereo(sound * 0.3)  # Reduce volume
 
     def play_echo(self, direction, distance):
+        if not self.enabled:
+            return
         if "echo" in self.sounds:
             sound = self.sounds["echo"].copy()
             
