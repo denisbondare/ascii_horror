@@ -1,5 +1,6 @@
 import random
 from utils import get_random_position, distance, generate_perlin_noise
+from collections import deque
 
 class EchoSource:
     def __init__(self, x, y, player):
@@ -7,7 +8,7 @@ class EchoSource:
         self.y = y
         self.move_cooldown = 0
         self.move_direction = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
-        self.max_distance = 100
+        self.max_distance = 200
         self.player = player
         self.speed = 2
     def move(self, world):
@@ -171,12 +172,37 @@ class World:
         self.text_triggers = new_text_triggers
 
     def generate_echo_sources(self):
-        num_sources = 50  # You can adjust this number
+        num_sources = 3  # You can adjust this number
+        accessible_positions = self.get_accessible_positions()
+        
         for _ in range(num_sources):
-            x, y = get_random_position(self.width, self.height)
-            while self.is_obstacle(x, y) or (x, y) in self.items:
-                x, y = get_random_position(self.width, self.height)
-            self.echo_sources.append(EchoSource(x, y, self.player))
+            if not accessible_positions:
+                break  # Stop if we run out of accessible positions
+            pos = random.choice(accessible_positions)
+            self.echo_sources.append(EchoSource(pos[0], pos[1], self.player))
+            accessible_positions.remove(pos)
+
+    def get_accessible_positions(self):
+        start_x, start_y = self.width // 2, self.height // 2  # Assuming player starts at the center
+        visited = set()
+        queue = deque([(start_x, start_y)])
+        accessible = []
+
+        while queue:
+            x, y = queue.popleft()
+            if (x, y) in visited:
+                continue
+
+            visited.add((x, y))
+            if not self.is_obstacle(x, y):
+                accessible.append((x, y))
+
+            for dx, dy in [(0, 1), (1, 0), (0, -1), (-1, 0)]:
+                nx, ny = x + dx, y + dy
+                if 0 <= nx < self.width and 0 <= ny < self.height and (nx, ny) not in visited:
+                    queue.append((nx, ny))
+
+        return accessible
 
     def update_echo_sources(self):
         for source in self.echo_sources:

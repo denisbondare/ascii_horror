@@ -61,6 +61,11 @@ class Game:
         self.message_index = 0
         self.message_start_time = 0
         self.message_type = None  # Can be "scary" or "system"
+        self.game_over = False
+        self.game_won = False
+        self.low_signal_start_time = None
+        self.total_time = 0
+        self.start_time = time.time()
         
     def set_temperature(self, value):
         self.temperature = value
@@ -109,7 +114,13 @@ class Game:
                 self.update_signal_strength(-10)
             elif keyboard.is_pressed('esc'):
                 self.running = False
-            
+            # Test keys for winning and losing
+            elif keyboard.is_pressed('w'):  # 'w' for win
+                self.samples_collected = self.total_samples
+            elif keyboard.is_pressed('l'):  # 'l' for lose
+                self.signal_strength = 1
+                self.low_signal_start_time = time.time() - 6  # Force immediate loss
+
             if moved:
                 self.movement_step = 0
 
@@ -121,6 +132,9 @@ class Game:
                     self.sound_system.play_sound("footstep")
 
     def update(self):
+        if self.game_over or self.game_won:
+            return
+
         current_time = time.time()
         frame_time = 1 / 10 
         
@@ -131,6 +145,20 @@ class Game:
         if elapsed_time >= frame_time:
             self.last_update_time = current_time
             self._process_frame(elapsed_time)
+
+        # Check win condition
+        if self.samples_collected >= self.total_samples:
+            self.game_won = True
+            self.total_time = int(time.time() - self.start_time)
+
+        # Check lose condition
+        if self.signal_strength < 10:
+            if self.low_signal_start_time is None:
+                self.low_signal_start_time = current_time
+            elif current_time - self.low_signal_start_time >= 5:
+                self.game_over = True
+        else:
+            self.low_signal_start_time = None
 
     def _process_frame(self, delta_time):
         if self.text_display_active:
@@ -222,11 +250,11 @@ class Game:
             self.show_message(self.world.get_system_text("very_low_signal"), "system")
 
         # Check humidity
-        if self.humidity > 98 and self.check_message_cooldown("high_humidity", current_time):
-            self.show_message(self.world.get_system_text("high_humidity"), "system")
+        #if self.humidity > 98 and self.check_message_cooldown("high_humidity", current_time):
+        #    self.show_message(self.world.get_system_text("high_humidity"), "system")
 
         # Random system messages (very rare)
-        if random.random() < 0.001:  # Adjust this probability as needed
+        if random.random() < 0.005:  # Adjust this probability as needed
             random_message = random.choice(["sensor_malfunction", "unknown_readings", "power_fluctuation", "radiation_spike", "magnetic_interference"])
             if self.check_message_cooldown(random_message, current_time):
                 self.show_message(self.world.get_system_text(random_message), "system")
@@ -259,18 +287,46 @@ class Game:
                 self.message_type = None
 
     def render(self):
-        self.graphics.clear()
-        self.graphics.draw_borders()
-        self.graphics.draw_world(self.world, self.player, self.visibility_radius, self.signal_strength)
-        self.graphics.draw_char(self.player.x, self.player.y, self.player.char)
-        
-        if self.text_display_active:
-            self.graphics.draw_animated_text(self.current_text, self.text_index)
-        elif self.current_message:
-            self.graphics.draw_animated_text(self.current_message[:self.message_index], self.message_index)
+        if self.game_won:
+            self.render_win_screen()
+        elif self.game_over:
+            self.render_lose_screen()
         else:
-            self.graphics.draw_stats(self.samples_collected, self.total_samples, self.temperature, self.humidity, self.signal_strength)
-        
+            self.graphics.clear()
+            self.graphics.draw_borders()
+            self.graphics.draw_world(self.world, self.player, self.visibility_radius, self.signal_strength)
+            self.graphics.draw_char(self.player.x, self.player.y, self.player.char)
+            
+            if self.text_display_active:
+                self.graphics.draw_animated_text(self.current_text, self.text_index)
+            elif self.current_message:
+                self.graphics.draw_animated_text(self.current_message[:self.message_index], self.message_index)
+            else:
+                self.graphics.draw_stats(self.samples_collected, self.total_samples, self.temperature, self.humidity, self.signal_strength)
+            
+            self.graphics.render()
+
+    def render_win_screen(self):
+        self.graphics.clear()
+        self.graphics.draw_animated_background(time.time())
+        self.graphics.draw_borders()
+        self.graphics.draw_text(16, 0, f"SYS: {time.strftime('%H:%M:%S')} | MEM: 64kb")
+        self.graphics.draw_text(12, 9, "| OPERATION COMPLETE |")
+        self.graphics.draw_text(13, 11, f"Total Time: {self.total_time}s")
+        self.graphics.draw_text(13, 13, " 1. Restart ")
+        self.graphics.draw_text(13, 14, " 2. Terminate ")
+        self.graphics.draw_text(12, 21, "| v1.19 | 1980 | Subterra LTD")
+        self.graphics.render()
+
+    def render_lose_screen(self):
+        self.graphics.clear()
+        self.graphics.draw_animated_background(time.time())
+        self.graphics.draw_borders()
+        self.graphics.draw_text(16, 0, f"SYS: {time.strftime('%H:%M:%S')} | MEM: 64kb")
+        self.graphics.draw_text(13, 9, "| CONNECTION LOST |")
+        self.graphics.draw_text(13, 13, " 1. Restart ")
+        self.graphics.draw_text(13, 14, " 2. Terminate ")
+        self.graphics.draw_text(12, 21, "| v1.19 | 1980 | Subterra LTD")
         self.graphics.render()
 
     def run(self):
@@ -282,8 +338,23 @@ class Game:
             self.handle_input()
             self.update()
             self.render()
-            #pygame.time.wait(50)  # Use pygame's wait function for consistent timing
+
+            if self.game_over or self.game_won:
+                choice = self.handle_end_game_input()
+                if choice == 1:
+                    return True  # Restart the game
+                elif choice == 2:
+                    self.running = False
+
         self.sound_system.stop_music()
+        return False  # Terminate the game
+
+    def handle_end_game_input(self):
+        if keyboard.is_pressed('1'):
+            return 1
+        elif keyboard.is_pressed('2'):
+            return 2
+        return None
 
     def show_text(self, text_lines):
         self.text_queue = text_lines
@@ -337,6 +408,10 @@ def main_menu():
     return False
 
 if __name__ == "__main__":
-    if main_menu():
-        game = Game(42, 22)
-        game.run()
+    while True:
+        if main_menu():
+            game = Game(42, 22)
+            if not game.run():
+                break
+        else:
+            break
