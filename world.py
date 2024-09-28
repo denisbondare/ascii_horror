@@ -32,8 +32,8 @@ class World:
                 self.obstacles.add((x, y))
 
         # Generate items
-        items = ['!', '?', '*']
-        num_items = (self.width * self.height) // 40  # Reduced number of items
+        items = ['*']
+        num_items = (self.width * self.height) // 50  # Reduced number of items
         for _ in range(num_items):
             x, y = get_random_position(self.width, self.height)
             if (x, y) not in self.obstacles and (x, y) not in self.items and (x, y) != (self.width // 2, self.height // 2):

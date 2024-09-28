@@ -9,7 +9,9 @@ def distance(x1, y1, x2, y2):
     return ((x2 - x1) ** 2 + (y2 - y1) ** 2) ** 0.5
 
 def is_visible(x1, y1, x2, y2, radius):
-    return distance(x1, y1, x2, y2) <= radius
+    dx = abs(x2 - x1)
+    dy = abs(y2 - y1)
+    return (dx / 2) ** 2 + dy ** 2 <= radius ** 2
 
 def generate_perlin_noise(x, y, t, scale=0.1, octaves=6, persistence=0.5, lacunarity=2.0):
     return noise.pnoise3(x * scale, 

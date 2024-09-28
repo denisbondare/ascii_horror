@@ -47,7 +47,7 @@ class Graphics:
                 if 0 <= world_x < world.width and 0 <= world_y < world.height:
                     if is_visible(player_screen_x, player_screen_y, x, y, visibility_radius):
                         if world.is_obstacle(world_x, world_y):
-                            self.draw_char(x, y, '#')
+                            self.draw_char(x, y, '▓')
                         elif (world_x, world_y) in world.items:
                             self.draw_char(x, y, world.items[(world_x, world_y)])
                         else:
@@ -80,5 +80,5 @@ class Graphics:
 
     def draw_stats(self, samples_collected, total_samples, temperature, humidity, signal_strength):
         self.draw_text_area()
-        stats_text = f"S: {samples_collected}/{total_samples} | T: {temperature:.1f}°C | H: {humidity}% | S: {signal_strength}%"
+        stats_text = f"{samples_collected}/{total_samples} | T: {temperature:.1f}°C | H: {humidity}% | Signal: {signal_strength}%"
         self.draw_text(1, self.game_height + 1, stats_text)
