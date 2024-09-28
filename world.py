@@ -49,6 +49,33 @@ class World:
         self.echo_sources = []
         self.generate_echo_sources()
 
+        self.scary_texts = [
+            "⛧ You're mine now.",
+            "⚮ Leave while you can.",
+            "⛥ I see you, intruder.",
+            "⚝ Your fear feeds me.",
+            "⍜ Run, little one.",
+            "⛇ This place hungers.",
+            "⚹ You'll never escape.",
+            "⍭ I am everywhere.",
+            "⛮ Your time is short.",
+            "⚶ Join us in darkness."
+        ]
+        self.used_scary_texts = set()
+        
+        self.system_texts = {
+            "low_temperature": "WARNING: Critically low temp.",
+            "high_temperature": "ALERT: Extreme heat.",
+            "low_signal": "CAUTION: Weak signal.",
+            "very_low_signal": "DANGER: Signal loss.",
+            "high_humidity": "NOTICE: High humidity.",
+            "sensor_malfunction": "ERROR: Sensors corrupted.",
+            "unknown_readings": "ANOMALY: Unknown energy.",
+            "power_fluctuation": "WARNING: Power unstable.",
+            "radiation_spike": "ALERT: Radiation detected.",
+            "magnetic_interference": "CAUTION: Magnetic interference."
+        }
+
     def generate_world(self):
         # Generate cave-like terrain using Perlin noise
         scale = 0.1
@@ -160,3 +187,16 @@ class World:
             return None, float('inf')
         nearest = min(self.echo_sources, key=lambda s: distance(x, y, s.x, s.y))
         return nearest, distance(x, y, nearest.x, nearest.y)
+
+    def get_random_scary_text(self):
+        available_texts = set(self.scary_texts) - self.used_scary_texts
+        if not available_texts:
+            self.used_scary_texts.clear()
+            available_texts = set(self.scary_texts)
+        
+        chosen_text = random.choice(list(available_texts))
+        self.used_scary_texts.add(chosen_text)
+        return chosen_text
+
+    def get_system_text(self, key):
+        return self.system_texts.get(key, "System message unavailable.")

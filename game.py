@@ -49,6 +49,18 @@ class Game:
         self.last_update_time = time.time()
         self.movement_step = 0
         self.echo_cooldown = 0
+        self.last_scary_text_time = 0
+        self.last_system_message_time = {}
+        self.current_system_message = ""
+        self.system_message_index = 0
+        self.system_message_start_time = 0
+        self.current_scary_text = ""
+        self.scary_text_index = 0
+        self.scary_text_start_time = 0
+        self.current_message = ""
+        self.message_index = 0
+        self.message_start_time = 0
+        self.message_type = None  # Can be "scary" or "system"
         
     def set_temperature(self, value):
         self.temperature = value
@@ -122,8 +134,8 @@ class Game:
 
     def _process_frame(self, delta_time):
         if self.text_display_active:
-            if time.time() - self.last_type_time > 0.05 and self.text_index < len(self.current_text):
-                self.text_index += 1
+            if time.time() - self.last_type_time > 0.02 and self.text_index < len(self.current_text):
+                self.text_index += random.randint(1, 2)
                 self.sound_system.play_sound("typing")
                 self.last_type_time = time.time()
             elif self.text_index >= len(self.current_text):
@@ -182,6 +194,70 @@ class Game:
         max_signal = 91 + random.uniform(-1, 1)+ random.uniform(-1, 1)
         self.set_signal_strength(min(max_signal, max(1, signal_change)))
 
+        # Handle echo effects and scary texts
+        if nearest_source and distance < nearest_source.max_distance / 4:
+            if time.time() - self.last_scary_text_time > 15 and random.random() < 0.1:
+                self.show_message(self.world.get_random_scary_text(), "scary")
+
+        # Handle system messages only if there's no current message
+        if not self.current_message:
+            self.check_system_messages()
+
+        # Update text animations
+        self.update_text_animations()
+
+    def check_system_messages(self):
+        current_time = time.time()
+        
+        # Check temperature
+        if self.temperature < -100 and self.check_message_cooldown("low_temperature", current_time):
+            self.show_message(self.world.get_system_text("low_temperature"), "system")
+        elif self.temperature > 90 and self.check_message_cooldown("high_temperature", current_time):
+            self.show_message(self.world.get_system_text("high_temperature"), "system")
+
+        # Check signal strength
+        if self.signal_strength < 20 and self.check_message_cooldown("low_signal", current_time):
+            self.show_message(self.world.get_system_text("low_signal"), "system")
+        elif self.signal_strength < 10 and self.check_message_cooldown("very_low_signal", current_time):
+            self.show_message(self.world.get_system_text("very_low_signal"), "system")
+
+        # Check humidity
+        if self.humidity > 98 and self.check_message_cooldown("high_humidity", current_time):
+            self.show_message(self.world.get_system_text("high_humidity"), "system")
+
+        # Random system messages (very rare)
+        if random.random() < 0.001:  # Adjust this probability as needed
+            random_message = random.choice(["sensor_malfunction", "unknown_readings", "power_fluctuation", "radiation_spike", "magnetic_interference"])
+            if self.check_message_cooldown(random_message, current_time):
+                self.show_message(self.world.get_system_text(random_message), "system")
+
+    def check_message_cooldown(self, message_type, current_time):
+        if message_type not in self.last_system_message_time or current_time - self.last_system_message_time[message_type] > 30:
+            self.last_system_message_time[message_type] = current_time
+            return True
+        return False
+
+    def show_message(self, text, message_type):
+        if not self.current_message or message_type == "scary":
+            self.current_message = text
+            self.message_index = 0
+            self.message_start_time = time.time()
+            self.message_type = message_type
+            if message_type == "scary":
+                self.last_scary_text_time = time.time()
+
+    def update_text_animations(self):
+        current_time = time.time()
+
+        if self.current_message:
+            if self.message_index < len(self.current_message):
+                if current_time - self.message_start_time > 0.02 * self.message_index:
+                    self.message_index += random.randint(1, 2)
+                    self.sound_system.play_sound("typing")
+            elif current_time - self.message_start_time > 2:
+                self.current_message = ""
+                self.message_type = None
+
     def render(self):
         self.graphics.clear()
         self.graphics.draw_borders()
@@ -190,11 +266,12 @@ class Game:
         
         if self.text_display_active:
             self.graphics.draw_animated_text(self.current_text, self.text_index)
+        elif self.current_message:
+            self.graphics.draw_animated_text(self.current_message[:self.message_index], self.message_index)
         else:
             self.graphics.draw_stats(self.samples_collected, self.total_samples, self.temperature, self.humidity, self.signal_strength)
         
         self.graphics.render()
-        
 
     def run(self):
         if self.show_intro:
@@ -211,6 +288,7 @@ class Game:
     def show_text(self, text_lines):
         self.text_queue = text_lines
         self.next_text()
+        self.text_display_active = True
 
     def next_text(self):
         if self.text_queue:
