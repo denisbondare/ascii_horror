@@ -73,6 +73,10 @@ class Game:
         elif keyboard.is_pressed('right') and self.player.x < self.world.width - 2:
             dx = 1
             moved = True
+        elif keyboard.is_pressed('u'):
+            self.samples_collected += 10
+        elif keyboard.is_pressed('d'):
+            self.signal_strength -= 10
         elif keyboard.is_pressed('esc'):
             self.running = False
 
@@ -122,10 +126,15 @@ class Game:
         if text_event:
             self.show_text(text_event)
 
+        # Update signal strength
+        if random.random() < 0.1:  # 10% chance to change signal strength each update
+            self.signal_strength += random.uniform(-2, 2)
+            self.signal_strength = max(0, min(100, self.signal_strength))
+
     def render(self):
         self.graphics.clear()
         self.graphics.draw_borders()
-        self.graphics.draw_world(self.world, self.player, self.visibility_radius)
+        self.graphics.draw_world(self.world, self.player, self.visibility_radius, self.signal_strength)
         self.graphics.draw_char(self.player.x, self.player.y, self.player.char)
         
         if self.text_display_active:
