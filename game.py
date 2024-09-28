@@ -110,7 +110,7 @@ class Game:
 
     def update(self):
         current_time = time.time()
-        frame_time = 1 / 60 
+        frame_time = 1 / 10 
         
         # Calculate the time elapsed since the last update
         elapsed_time = current_time - self.last_update_time
@@ -175,8 +175,8 @@ class Game:
         # Update ripples
         self.graphics.update_ripples()
 
-        signal_change = 91 * (distance**1.2 / nearest_source.max_distance)
-        temperature_change = -148.0 * (1 - distance**1.2 / nearest_source.max_distance) + random.uniform(-0.3, 0.3)
+        signal_change = 91 * (distance**1.5 / nearest_source.max_distance)
+        temperature_change = -148.0 * (1 - distance**1.7 / nearest_source.max_distance) + random.uniform(-0.3, 0.3)
         max_temp = 59 + random.uniform(-0.1, 0.1)
         self.set_temperature(min(max_temp, max(-148.0, temperature_change)))
         max_signal = 91 + random.uniform(-1, 1)+ random.uniform(-1, 1)

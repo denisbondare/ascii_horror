@@ -1,5 +1,5 @@
 import random
-from utils import get_random_position, distance
+from utils import get_random_position, distance, generate_perlin_noise
 
 class EchoSource:
     def __init__(self, x, y, player):
@@ -50,29 +50,52 @@ class World:
         self.generate_echo_sources()
 
     def generate_world(self):
-        # Generate border walls
+        # Generate cave-like terrain using Perlin noise
+        scale = 0.1
+        octaves = 6
+        persistence = 0.5
+        lacunarity = 2.0
+        threshold = 0.1  # Adjust this to control cave density
+
         for x in range(self.width):
-            for y in range(10):
-                self.obstacles.add((x, y))
-                self.obstacles.add((x, self.height - 1 - y))
-        for y in range(self.height):
-            for x in range(10):
-                self.obstacles.add((x, y))
-                self.obstacles.add((self.width - 1 - x, y))
+            for y in range(self.height):
+                if x < 10 or x >= self.width - 10 or y < 10 or y >= self.height - 10:
+                    self.obstacles.add((x, y))  # Create border walls
+                else:
+                    value = generate_perlin_noise(x, y, 0, scale, octaves, persistence, lacunarity)
+                    if value > threshold:
+                        self.obstacles.add((x, y))
 
-        # Generate obstacles
-        num_obstacles = (self.width * self.height) // 20  # Reduced number of obstacles
-        for _ in range(num_obstacles):
-            x, y = get_random_position(self.width, self.height)
-            if (x, y) not in self.obstacles and (x, y) != (self.width // 2, self.height // 2):
-                self.obstacles.add((x, y))
+        # Ensure the player's starting position is clear
+        player_area = [(x, y) for x in range(self.width // 2 - 5, self.width // 2 + 6)
+                              for y in range(self.height // 2 - 5, self.height // 2 + 6)]
+        for pos in player_area:
+            if pos in self.obstacles:
+                self.obstacles.remove(pos)
 
-        # Generate items
+        self.generate_items()
+
+    def generate_items(self):
         items = ['+']
-        num_items = 50  # Reduced number of items
+        num_items = 50
+        min_distance = 10  # Minimum distance between items
+
         for _ in range(num_items):
+            attempts = 0
+            while attempts < 100:  # Limit attempts to avoid infinite loop
+                x, y = get_random_position(self.width, self.height)
+                if (x, y) not in self.obstacles and (x, y) not in self.items and \
+                   (x, y) != (self.width // 2, self.height // 2) and \
+                   all(distance(x, y, ix, iy) >= min_distance for ix, iy in self.items):
+                    self.items[(x, y)] = random.choice(items)
+                    break
+                attempts += 1
+
+        # Ensure we have enough items
+        while len(self.items) < num_items:
             x, y = get_random_position(self.width, self.height)
-            if (x, y) not in self.obstacles and (x, y) not in self.items and (x, y) != (self.width // 2, self.height // 2):
+            if (x, y) not in self.obstacles and (x, y) not in self.items and \
+               (x, y) != (self.width // 2, self.height // 2):
                 self.items[(x, y)] = random.choice(items)
 
     def is_obstacle(self, x, y):
@@ -121,7 +144,7 @@ class World:
         self.text_triggers = new_text_triggers
 
     def generate_echo_sources(self):
-        num_sources = 1  # You can adjust this number
+        num_sources = 50  # You can adjust this number
         for _ in range(num_sources):
             x, y = get_random_position(self.width, self.height)
             while self.is_obstacle(x, y) or (x, y) in self.items:
