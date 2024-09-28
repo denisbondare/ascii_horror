@@ -13,8 +13,8 @@ class Game:
         self.width = width
         self.height = height
         self.graphics = Graphics(width, height)
-        self.world = World(width, height - 3)  # Adjust world height
-        self.player = Player(width // 2, (height - 3) // 2)  # Adjust player starting position
+        self.world = World(256, 256)  # Much larger world
+        self.player = Player(128, 128)  # Start player in the center of the world
         self.sound_system = SoundSystem()
         self.running = True
         self.visibility_radius = 5
@@ -53,34 +53,34 @@ class Game:
                 self.next_text()
             return
 
-        new_x, new_y = self.player.x, self.player.y
+        dx, dy = 0, 0
         moved = False
         if keyboard.is_pressed('up') and self.player.y > 1:
             self.vertical_step += 1
             if self.vertical_step >= 2:
-                new_y -= 1
+                dy = -1
                 self.vertical_step = 0
             moved = True
-        elif keyboard.is_pressed('down') and self.player.y < self.height - 2:
+        elif keyboard.is_pressed('down') and self.player.y < self.world.height - 2:
             self.vertical_step += 1
             if self.vertical_step >= 2:
-                new_y += 1
+                dy = 1
                 self.vertical_step = 0
             moved = True
         elif keyboard.is_pressed('left') and self.player.x > 1:
-            new_x -= 1
+            dx = -1
             moved = True
-        elif keyboard.is_pressed('right') and self.player.x < self.width - 2:
-            new_x += 1
+        elif keyboard.is_pressed('right') and self.player.x < self.world.width - 2:
+            dx = 1
             moved = True
         elif keyboard.is_pressed('esc'):
             self.running = False
 
-        if not self.world.is_obstacle(new_x, new_y):
-            self.player.x, self.player.y = new_x, new_y
+        if not self.world.is_obstacle(self.player.x + dx, self.player.y + dy):
+            self.world.move(dx, dy)  # Move the world instead of the player
             if moved:
                 self.step_counter += 1
-                if self.step_counter % 2 == 0:  # Play footstep sound every other step
+                if self.step_counter % 2 == 0:
                     self.sound_system.play_sound("footstep")
 
     def update(self):

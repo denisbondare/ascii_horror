@@ -14,8 +14,18 @@ class World:
         }
 
     def generate_world(self):
+        # Generate border walls
+        for x in range(self.width):
+            for y in range(10):
+                self.obstacles.add((x, y))
+                self.obstacles.add((x, self.height - 1 - y))
+        for y in range(self.height):
+            for x in range(10):
+                self.obstacles.add((x, y))
+                self.obstacles.add((self.width - 1 - x, y))
+
         # Generate obstacles
-        num_obstacles = (self.width * self.height) // 10
+        num_obstacles = (self.width * self.height) // 20  # Reduced number of obstacles
         for _ in range(num_obstacles):
             x, y = get_random_position(self.width, self.height)
             if (x, y) not in self.obstacles and (x, y) != (self.width // 2, self.height // 2):
@@ -23,7 +33,7 @@ class World:
 
         # Generate items
         items = ['!', '?', '*']
-        num_items = (self.width * self.height) // 20
+        num_items = (self.width * self.height) // 40  # Reduced number of items
         for _ in range(num_items):
             x, y = get_random_position(self.width, self.height)
             if (x, y) not in self.obstacles and (x, y) not in self.items and (x, y) != (self.width // 2, self.height // 2):
@@ -56,3 +66,20 @@ class World:
         if (x, y) in self.text_triggers:
             return self.text_triggers[(x, y)]
         return None
+
+    def move(self, dx, dy):
+        # Move all objects in the opposite direction of player movement
+        new_obstacles = set()
+        for x, y in self.obstacles:
+            new_obstacles.add((x - dx, y - dy))
+        self.obstacles = new_obstacles
+
+        new_items = {}
+        for (x, y), item in self.items.items():
+            new_items[(x - dx, y - dy)] = item
+        self.items = new_items
+
+        new_text_triggers = {}
+        for (x, y), trigger in self.text_triggers.items():
+            new_text_triggers[(x - dx, y - dy)] = trigger
+        self.text_triggers = new_text_triggers

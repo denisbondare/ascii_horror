@@ -36,15 +36,29 @@ class Graphics:
             self.draw_char(x + i, y, char)
 
     def draw_world(self, world, player, visibility_radius):
+        player_screen_x = self.width // 2
+        player_screen_y = self.game_height // 2
+
         for y in range(self.game_height):
             for x in range(self.width):
-                if is_visible(player.x, player.y, x, y, visibility_radius):
-                    if world.is_obstacle(x, y):
-                        self.draw_char(x, y, '#')
-                    elif (x, y) in world.items:
-                        self.draw_char(x, y, world.items[(x, y)])
+                world_x = player.x + (x - player_screen_x)
+                world_y = player.y + (y - player_screen_y)
+                
+                if 0 <= world_x < world.width and 0 <= world_y < world.height:
+                    if is_visible(player_screen_x, player_screen_y, x, y, visibility_radius):
+                        if world.is_obstacle(world_x, world_y):
+                            self.draw_char(x, y, '#')
+                        elif (world_x, world_y) in world.items:
+                            self.draw_char(x, y, world.items[(world_x, world_y)])
+                        else:
+                            self.draw_char(x, y, ' ')  # Empty space is now truly empty
+                    else:
+                        self.draw_char(x, y, '░')  # Use a different character for unseen areas
                 else:
                     self.draw_char(x, y, ' ')
+
+        # Draw player in the center
+        self.draw_char(player_screen_x, player_screen_y, player.char)
 
     def draw_text_area(self):
         for x in range(self.width):
