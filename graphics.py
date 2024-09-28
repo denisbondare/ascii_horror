@@ -1,5 +1,6 @@
 import os
 import random
+import sys
 from utils import is_visible, generate_perlin_noise, get_wave_char
 
 class Graphics:
@@ -8,7 +9,7 @@ class Graphics:
         self.height = height
         self.game_height = height - 3  # Reserve 3 lines for text
         self.buffer = [[' ' for _ in range(width)] for _ in range(height)]
-        self.previous_buffer = None
+        self.previous_buffer = [[' ' for _ in range(width)] for _ in range(height)]
         self.distortion_map = {}
         self.distortion_duration = 10  # frames
         self.corrupted_lines = set()
@@ -31,11 +32,22 @@ class Graphics:
             self.draw_char(self.width - 1, y, '|')
 
     def render(self):
-        if self.buffer != self.previous_buffer:
-            print("\033[H", end="")  # Move cursor to top-left corner
-            for row in self.buffer:
-                print(''.join(row))
-            self.previous_buffer = [row[:] for row in self.buffer]
+        # Move cursor to top-left corner
+        sys.stdout.write("\033[H")
+        sys.stdout.flush()
+        
+        for y, row in enumerate(self.buffer):
+            if row != self.previous_buffer[y]:
+                # Move cursor to the beginning of the line
+                sys.stdout.write(f"\033[{y + 1};1H")
+                # Write the entire row
+                sys.stdout.write(''.join(row))
+                sys.stdout.flush()
+                self.previous_buffer[y] = row[:]
+        
+        # Move cursor to the bottom of the screen
+        sys.stdout.write(f"\033[{self.height + 1};1H")
+        sys.stdout.flush()
 
     def draw_text(self, x, y, text):
         for i, char in enumerate(text):
