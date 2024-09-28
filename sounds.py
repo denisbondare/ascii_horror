@@ -13,6 +13,7 @@ class SoundSystem:
             "footstep": self.generate_footstep_sound(),
             "ambient": self.generate_ambient_sound(),
             "typing": self.generate_typing_sound(),
+            "echo": self.generate_echo_sound(),
         }
         self.music = {
             "ambient_horror": self.generate_ambient_horror_music(),
@@ -70,7 +71,7 @@ class SoundSystem:
         ])
         
         mono = mono * envelope
-        return self.to_stereo(mono * 0.5)  # Reduce volume by half
+        return self.to_stereo(mono * 0.25)  # Reduce volume by half
 
     def generate_ambient_sound(self):
         duration = 1.0
@@ -80,13 +81,64 @@ class SoundSystem:
         return self.to_stereo(mono)
 
     def generate_ambient_horror_music(self):
-        duration = 10.0
-        base_freq = 55
+        duration = 16.0
+        base_freq = 77.78
         harmonics = [1, 1.5, 2, 2.5, 3]
         waves = [self.generate_sine_wave(base_freq * h, duration) for h in harmonics]
         combined = sum(waves) / len(waves)
         noise = self.generate_noise(duration) * 0.1
-        mono = (combined + noise) * 0.5
+        
+        # Add low melody and harmony
+        low_notes = [77.78, 87.31, 103.83, 116.54, 138.59]  # D2, F2, G#2, A#2, C3
+        high_notes = [77.78, 87.31, 103.83, 116.54, 138.59]  # D2, F2, G#2, A#2, C3
+        #high_notes = [155.56, 174.61, 207.65, 233.08, 277.18, 349.23]  # D3, F3, G#3, A#3, C4, F4
+        low_melody = np.zeros(int(self.sample_rate * duration))
+        high_melody = np.zeros(int(self.sample_rate * duration))
+        note_duration = 4.0  # Shorter duration to fit more notes
+
+        for i in range(0, int(duration), int(note_duration)):
+            low_note = random.choice(low_notes)
+            high_note = random.choice(high_notes)
+            # Check if notes are equal or adjacent in the list
+            if low_note == high_note or abs(low_notes.index(low_note) - high_notes.index(high_note)) <= 1:
+                # If so, choose only one note
+                chosen_note = random.choice([low_note, high_note])
+                low_note = high_note = chosen_note
+            # Introduce very small detuning for both notes
+            detune_factor_low = random.uniform(0.95, 1.05)  # ±5% detuning
+            detune_factor_high = random.uniform(0.95, 1.05)  # ±5% detuning
+            low_note *= detune_factor_low
+            high_note *= detune_factor_high
+            tempo_low = random.choice([1, 0.5])  # 1/1 or 1/2 tempo for low notes
+            tempo_high = random.choice([1, 0.5, 0.25])  # 1/1 or 1/2 or 1/4 tempo for high notes
+            
+            t_low = np.linspace(0, note_duration * tempo_low, int(self.sample_rate * note_duration * tempo_low), False)
+            t_high = np.linspace(0, note_duration * tempo_high, int(self.sample_rate * note_duration * tempo_high), False)
+            
+            low_wave = np.sin(2 * np.pi * low_note * t_low)
+            high_wave = np.sin(2 * np.pi * high_note * t_high)
+            
+            start_low = int(i * self.sample_rate)
+            end_low = start_low + len(low_wave)
+            if end_low > len(low_melody):
+                end_low = len(low_melody)
+                low_wave = low_wave[:end_low-start_low]
+            low_melody[start_low:end_low] += low_wave
+
+            start_high = int(i * self.sample_rate)
+            end_high = start_high + len(high_wave)
+            if end_high > len(high_melody):
+                end_high = len(high_melody)
+                high_wave = high_wave[:end_high-start_high]
+            high_melody[start_high:end_high] += high_wave
+
+        # Normalize and combine melodies
+        low_melody = low_melody / np.max(np.abs(low_melody))
+        high_melody = high_melody / np.max(np.abs(high_melody))
+        melody = (low_melody + high_melody) / 2
+        
+        melody = melody / np.max(np.abs(melody))  # Normalize
+        mono = (combined * 0.35 + noise * 0.35 + melody * 0.3) * 0.5
         return self.to_stereo(mono)
 
     def generate_distortion_sound(self):
@@ -98,7 +150,7 @@ class SoundSystem:
         return self.to_stereo(combined)
 
     def update_distortion(self, signal_strength):
-        self.distortion_intensity = max(0, 1 - (signal_strength / 100))
+        self.distortion_intensity = min(1,max(0, 1 - (signal_strength**1.05 / 100)))
         if self.distortion_intensity > 0:
             if not self.distortion_channel.get_busy():
                 distortion = pygame.sndarray.make_sound((self.distortion_sound * 32767 * self.distortion_intensity).astype(np.int16))
@@ -120,11 +172,16 @@ class SoundSystem:
 
     def _sound_worker(self):
         while True:
-            sound_name = self.sound_queue.get()
-            if sound_name in self.sounds:
-                sound = self.sounds[sound_name]
-                pygame_sound = pygame.sndarray.make_sound((sound * 32767).astype(np.int16))
+            sound_info = self.sound_queue.get()
+            if isinstance(sound_info, tuple):
+                sound_name, pygame_sound = sound_info
                 pygame_sound.play()
+            else:
+                sound_name = sound_info
+                if sound_name in self.sounds:
+                    sound = self.sounds[sound_name]
+                    pygame_sound = pygame.sndarray.make_sound((sound * 32767).astype(np.int16))
+                    pygame_sound.play()
 
     def play_music(self, music_name):
         if music_name in self.music:
@@ -173,3 +230,40 @@ class SoundSystem:
         # Adjust the volume of the background noise
         noise_volume = 1 - (signal_strength / 100)
         self.ambient_channel.set_volume(noise_volume * 0.5)  # Max volume of 0.5 for ambient sounds
+
+    def generate_echo_sound(self):
+        duration = 1.0
+        t = np.linspace(0, duration, int(self.sample_rate * duration), False)
+        
+        # Generate a mix of sine waves for an eerie sound
+        freqs = [100, 200, 300, 400]
+        sound = np.zeros_like(t)
+        for freq in freqs:
+            sound += np.sin(2 * np.pi * freq * t) * (1 / len(freqs))
+        
+        # Apply an envelope to fade in and out
+        envelope = np.concatenate([
+            np.linspace(0, 1, int(self.sample_rate * 0.1)),
+            np.ones(int(self.sample_rate * 0.8)),
+            np.linspace(1, 0, int(self.sample_rate * 0.1))
+        ])
+        sound *= envelope
+        
+        return self.to_stereo(sound * 0.3)  # Reduce volume
+
+    def play_echo(self, direction, distance):
+        if "echo" in self.sounds:
+            sound = self.sounds["echo"].copy()
+            
+            # Adjust volume based on distance
+            volume = max(0, 1 - (distance / 50))  # Assume max distance is 50
+            sound *= volume
+            
+            # Adjust stereo based on direction
+            if direction < 0:  # Source is to the left
+                sound[:, 1] *= max(0, 1 + direction)  # Reduce right channel
+            elif direction > 0:  # Source is to the right
+                sound[:, 0] *= max(0, 1 - direction)  # Reduce left channel
+            
+            pygame_sound = pygame.sndarray.make_sound((sound * 32767).astype(np.int16))
+            self.sound_queue.put(("echo", pygame_sound))

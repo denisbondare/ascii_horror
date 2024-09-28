@@ -1,8 +1,42 @@
 import random
-from utils import get_random_position
+from utils import get_random_position, distance
+
+class EchoSource:
+    def __init__(self, x, y, player):
+        self.x = x
+        self.y = y
+        self.move_cooldown = 0
+        self.move_direction = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
+        self.max_distance = 100
+        self.player = player
+        self.speed = 2
+    def move(self, world):
+        self.move_cooldown -= 1
+        if self.move_cooldown <= 0:
+            dx = self.player.x - self.x
+            dy = self.player.y - self.y
+            
+            # Normalize the direction vector
+            length = max(abs(dx), abs(dy), 1)
+            dx = dx / length
+            dy = dy / length
+            
+            # Round to nearest integer (-1, 0, or 1)
+            dx = round(dx)
+            dy = round(dy)
+            
+            new_x = self.x + dx * self.speed
+            new_y = self.y + dy * self.speed
+            
+            if 0 <= new_x < world.width and 0 <= new_y < world.height and not world.is_obstacle(new_x, new_y):
+                self.x = new_x
+                self.y = new_y
+            
+            self.move_cooldown = random.randint(300, 300)  # Slow down the movement
 
 class World:
-    def __init__(self, width, height):
+    def __init__(self, width, height, player):
+        self.player = player
         self.width = width
         self.height = height
         self.obstacles = set()
@@ -12,6 +46,8 @@ class World:
             (5, 5): ["You found a mysterious note.", "It reads: 'Beware of the shadows.'"],
             (15, 10): ["A cold wind blows through the area.", "You hear whispers in the distance."],
         }
+        self.echo_sources = []
+        self.generate_echo_sources()
 
     def generate_world(self):
         # Generate border walls
@@ -32,8 +68,8 @@ class World:
                 self.obstacles.add((x, y))
 
         # Generate items
-        items = ['*']
-        num_items = (self.width * self.height) // 50  # Reduced number of items
+        items = ['+']
+        num_items = 50  # Reduced number of items
         for _ in range(num_items):
             x, y = get_random_position(self.width, self.height)
             if (x, y) not in self.obstacles and (x, y) not in self.items and (x, y) != (self.width // 2, self.height // 2):
@@ -52,7 +88,7 @@ class World:
         return False
 
     def generate_new_item(self):
-        items = ['!', '?', '*']
+        items = ['+']
         x, y = get_random_position(self.width, self.height)
         attempts = 0
         while attempts < 100:  # Limit attempts to avoid infinite loop
@@ -83,3 +119,21 @@ class World:
         for (x, y), trigger in self.text_triggers.items():
             new_text_triggers[(x - dx, y - dy)] = trigger
         self.text_triggers = new_text_triggers
+
+    def generate_echo_sources(self):
+        num_sources = 1  # You can adjust this number
+        for _ in range(num_sources):
+            x, y = get_random_position(self.width, self.height)
+            while self.is_obstacle(x, y) or (x, y) in self.items:
+                x, y = get_random_position(self.width, self.height)
+            self.echo_sources.append(EchoSource(x, y, self.player))
+
+    def update_echo_sources(self):
+        for source in self.echo_sources:
+            source.move(self)
+
+    def get_nearest_echo_source(self, x, y):
+        if not self.echo_sources:
+            return None, float('inf')
+        nearest = min(self.echo_sources, key=lambda s: distance(x, y, s.x, s.y))
+        return nearest, distance(x, y, nearest.x, nearest.y)

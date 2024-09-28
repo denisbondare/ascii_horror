@@ -12,12 +12,12 @@ class Game:
     def __init__(self, width, height):
         self.width = width
         self.height = height
-        self.graphics = Graphics(width, height)
-        self.world = World(256, 256)  # Much larger world
+        self.graphics = Graphics(width, height)        
         self.player = Player(128, 128)  # Start player in the center of the world
+        self.world = World(256, 256, self.player)  # Much larger world
         self.sound_system = SoundSystem()
         self.running = True
-        self.visibility_radius = 5
+        self.visibility_radius = 10
         self.step_counter = 0
         self.sound_system.play_music("ambient_horror")
         self.vertical_step = 0
@@ -30,7 +30,7 @@ class Game:
             "Depth: 2,743 meters below surface.",
             "Temperature: 57°C. Humidity: 98%.",
             "Signal strength: 80%.",
-            "Mission: Collect 50 material samples.",
+            "Mission: Collect 10 material samples.",
             "Arrow keys to control machine.",
             "Automatic evacuation upon completion.",
             "Warning: Unusual readings detected.",
@@ -39,7 +39,7 @@ class Game:
         self.show_intro = True
         self.text_fully_displayed = False
         self.samples_collected = 0
-        self.total_samples = 50
+        self.total_samples = 10
         self.temperature = 57.0
         self.humidity = 98
         self.signal_strength = 80
@@ -48,10 +48,11 @@ class Game:
         self.update_counter = 0
         self.last_update_time = time.time()
         self.movement_step = 0
+        self.echo_cooldown = 0
 
     def update_signal_strength(self, amount):
         self.signal_strength += amount
-        self.signal_strength = max(0, min(100, self.signal_strength))
+        self.signal_strength = max(1, min(100, self.signal_strength))
         self.sound_system.update_signal_strength(self.signal_strength)
 
     def handle_input(self):
@@ -67,7 +68,7 @@ class Game:
         dx, dy = 0, 0
         moved = False
         self.movement_step += 1
-        if self.movement_step >= 3:  # Slow down overall movement
+        if self.movement_step >= 1:  # Slow down overall movement
             if keyboard.is_pressed('up') and self.player.y > 1:
                 self.vertical_step += 1
                 if self.vertical_step >= 3:  # Further slow down vertical movement
@@ -105,15 +106,19 @@ class Game:
 
     def update(self):
         current_time = time.time()
-        delta_time = current_time - self.last_update_time
-        self.last_update_time = current_time
+        frame_time = 1 / 30  # 30 FPS
+        frames_to_process = int((current_time - self.last_update_time) / frame_time)
+        
+        for _ in range(frames_to_process):
+            self.last_update_time += frame_time
+            self._process_frame(frame_time)
 
+    def _process_frame(self, delta_time):
         if self.text_display_active:
-            current_time = time.time()
-            if current_time - self.last_type_time > 0.05 and self.text_index < len(self.current_text):
+            if time.time() - self.last_type_time > 0.05 and self.text_index < len(self.current_text):
                 self.text_index += 1
                 self.sound_system.play_sound("typing")
-                self.last_type_time = current_time
+                self.last_type_time = time.time()
             elif self.text_index >= len(self.current_text):
                 self.text_fully_displayed = True
             return
@@ -123,6 +128,7 @@ class Game:
             self.sound_system.play_sound("item_pickup")
             self.world.remove_item(self.player.x, self.player.y)
             self.samples_collected += 1
+
         # Update temperature and humidity less frequently
         self.update_counter += 1
         if self.update_counter >= 10:  # Update every 10 frames
@@ -152,6 +158,29 @@ class Game:
 
         # Update ambient sounds
         self.sound_system.update_ambient_sounds(delta_time)
+
+        # Update echo sources
+        self.world.update_echo_sources()
+        
+        nearest_source, distance = self.world.get_nearest_echo_source(self.player.x, self.player.y)
+        
+        # Handle echo effects
+        self.echo_cooldown -= 1
+        if self.echo_cooldown <= 0:
+            if nearest_source and distance < nearest_source.max_distance:  # Only play echo if within range
+                direction = (nearest_source.x - self.player.x) / distance
+                self.sound_system.play_echo(direction, distance)
+                # Calculate screen coordinates for the echo source
+                self.graphics.add_ripple(nearest_source.x, nearest_source.y)
+                self.echo_cooldown = random.randint(30, 60)  # Wait 30-60 frames before next echo
+
+        # Update ripples
+        self.graphics.update_ripples()
+
+        # Update signal strength based on nearest echo source
+        if distance <= nearest_source.max_distance:
+            signal_change = -100 * (1 - distance**1.5 / nearest_source.max_distance)
+            self.update_signal_strength(min(0, max(-100, signal_change)))
 
     def render(self):
         self.graphics.clear()
@@ -206,11 +235,11 @@ def main_menu():
         graphics.clear()
         graphics.draw_animated_background(t)
         graphics.draw_borders()
-        graphics.draw_text(12, 0, f"SYS: {time.strftime('%H:%M:%S')} | MEM: 64kb")
-        graphics.draw_text(8, 9, "SMI-1980 Operating Interface")
-        graphics.draw_text(12, 11, "1. Initialize")
-        graphics.draw_text(12, 12, "2. Terminate")
-        graphics.draw_text(14, 21, "v1.19 | 1980 | Subterra LTD")
+        graphics.draw_text(16, 0, f"SYS: {time.strftime('%H:%M:%S')} | MEM: 64kb")
+        graphics.draw_text(5, 9, "| SMI-1980 Operating Interface |")
+        graphics.draw_text(13, 11, " 1. Initialize ")
+        graphics.draw_text(13, 12, " 2. Terminate ")
+        graphics.draw_text(12, 21, "| v1.19 | 1980 | Subterra LTD")
         graphics.render()
 
         t += 0.1  # Increment time for animation
@@ -232,4 +261,3 @@ if __name__ == "__main__":
     if main_menu():
         game = Game(42, 22)
         game.run()
-    print("Thanks for playing!")
