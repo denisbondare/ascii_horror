@@ -2,6 +2,7 @@ import numpy as np
 import pygame
 import threading
 import queue
+import random
 
 class SoundSystem:
     def __init__(self):
@@ -18,9 +19,13 @@ class SoundSystem:
         }
         self.current_music = None
         self.music_channel = pygame.mixer.Channel(0)
+        self.ambient_channel = pygame.mixer.Channel(1)
         self.sound_queue = queue.Queue()
         self.sound_thread = threading.Thread(target=self._sound_worker, daemon=True)
         self.sound_thread.start()
+        self.signal_strength = 100
+        self.ambient_sounds = self.generate_ambient_sounds()
+        self.ambient_timer = 0
 
     def generate_sine_wave(self, freq, duration):
         t = np.linspace(0, duration, int(self.sample_rate * duration), False)
@@ -62,6 +67,31 @@ class SoundSystem:
         mono = (combined + noise) * 0.5
         return self.to_stereo(mono)
 
+    def generate_distortion_sound(self):
+        duration = 1.0
+        noise = self.generate_noise(duration)
+        crackle = np.random.choice([-1, 0, 1], size=int(self.sample_rate * duration), p=[0.05, 0.9, 0.05])
+        hum = self.generate_sine_wave(50, duration) * 0.1
+        combined = (noise * 0.3 + crackle * 0.5 + hum * 0.2) * 0.5
+        return self.to_stereo(combined)
+
+    def update_distortion(self, signal_strength):
+        self.distortion_intensity = max(0, 1 - (signal_strength / 100))
+        if self.distortion_intensity > 0:
+            if not self.distortion_channel.get_busy():
+                distortion = pygame.sndarray.make_sound((self.distortion_sound * 32767 * self.distortion_intensity).astype(np.int16))
+                self.distortion_channel.play(distortion, loops=-1)
+            self.distortion_channel.set_volume(self.distortion_intensity)
+        else:
+            self.distortion_channel.stop()
+
+    def apply_distortion_to_sound(self, sound):
+        if self.distortion_intensity > 0:
+            noise = self.generate_noise(len(sound) / self.sample_rate) * self.distortion_intensity * 0.3
+            distorted_sound = sound + noise[:, np.newaxis]
+            return np.clip(distorted_sound, -1, 1)
+        return sound
+
     def play_sound(self, sound_name):
         if sound_name in self.sounds:
             self.sound_queue.put(sound_name)
@@ -70,13 +100,15 @@ class SoundSystem:
         while True:
             sound_name = self.sound_queue.get()
             if sound_name in self.sounds:
-                sound = pygame.sndarray.make_sound((self.sounds[sound_name] * 32767).astype(np.int16))
-                sound.play()
+                sound = self.sounds[sound_name]
+                pygame_sound = pygame.sndarray.make_sound((sound * 32767).astype(np.int16))
+                pygame_sound.play()
 
     def play_music(self, music_name):
         if music_name in self.music:
-            music = pygame.sndarray.make_sound((self.music[music_name] * 32767).astype(np.int16))
-            self.music_channel.play(music, loops=-1)
+            music = self.music[music_name]
+            pygame_music = pygame.sndarray.make_sound((music * 32767).astype(np.int16))
+            self.music_channel.play(pygame_music, loops=-1)
 
     def stop_music(self):
         self.music_channel.stop()
@@ -87,3 +119,35 @@ class SoundSystem:
         envelope = np.linspace(1, 0, int(self.sample_rate * duration))
         mono = noise * envelope * 0.3
         return self.to_stereo(mono)
+
+    def generate_ambient_sounds(self):
+        sounds = []
+        for _ in range(5):  # Generate 5 different ambient sounds
+            duration = random.uniform(0.2, 0.5)
+            freq = random.uniform(100, 500)
+            noise = self.generate_noise(duration) * 0.3
+            tone = self.generate_sine_wave(freq, duration) * 0.2
+            sound = self.to_stereo(noise + tone)
+            sounds.append(pygame.sndarray.make_sound((sound * 32767).astype(np.int16)))
+        return sounds
+
+    def update_ambient_sounds(self, delta_time):
+        self.ambient_timer += delta_time
+        if self.ambient_timer >= self.get_ambient_interval():
+            self.ambient_timer = 0
+            self.play_random_ambient_sound()
+
+    def get_ambient_interval(self):
+        # Interval decreases as signal strength decreases
+        return max(0.5, 5 * (self.signal_strength / 100))
+
+    def play_random_ambient_sound(self):
+        if random.random() < 1 - (self.signal_strength / 100):
+            sound = random.choice(self.ambient_sounds)
+            self.ambient_channel.play(sound)
+
+    def update_signal_strength(self, signal_strength):
+        self.signal_strength = signal_strength
+        # Adjust the volume of the background noise
+        noise_volume = 1 - (signal_strength / 100)
+        self.ambient_channel.set_volume(noise_volume * 0.5)  # Max volume of 0.5 for ambient sounds

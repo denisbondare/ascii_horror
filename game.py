@@ -46,11 +46,21 @@ class Game:
         self.temp_direction = random.choice([-1, 1])
         self.humidity_direction = random.choice([-1, 1])
         self.update_counter = 0
+        self.last_update_time = time.time()
+
+    def update_signal_strength(self, amount):
+        self.signal_strength += amount
+        self.signal_strength = max(0, min(100, self.signal_strength))
+        self.sound_system.update_signal_strength(self.signal_strength)
 
     def handle_input(self):
         if self.text_display_active:
-            if keyboard.is_pressed('enter') and self.text_fully_displayed:
-                self.next_text()
+            if keyboard.is_pressed('enter'):
+                if self.text_fully_displayed:
+                    self.next_text()
+                else:
+                    self.text_index = len(self.current_text)
+                    self.text_fully_displayed = True
             return
 
         dx, dy = 0, 0
@@ -74,9 +84,9 @@ class Game:
             dx = 1
             moved = True
         elif keyboard.is_pressed('u'):
-            self.samples_collected += 10
-        elif keyboard.is_pressed('d'):
-            self.signal_strength -= 10
+            self.update_signal_strength(10)
+        elif keyboard.is_pressed('i'):
+            self.update_signal_strength(-10)
         elif keyboard.is_pressed('esc'):
             self.running = False
 
@@ -88,6 +98,10 @@ class Game:
                     self.sound_system.play_sound("footstep")
 
     def update(self):
+        current_time = time.time()
+        delta_time = current_time - self.last_update_time
+        self.last_update_time = current_time
+
         if self.text_display_active:
             current_time = time.time()
             if current_time - self.last_type_time > 0.05 and self.text_index < len(self.current_text):
@@ -126,10 +140,12 @@ class Game:
         if text_event:
             self.show_text(text_event)
 
-        # Update signal strength
+        # Update signal strength and audio
         if random.random() < 0.1:  # 10% chance to change signal strength each update
-            self.signal_strength += random.uniform(-2, 2)
-            self.signal_strength = max(0, min(100, self.signal_strength))
+            self.update_signal_strength(random.uniform(-2, 2))
+
+        # Update ambient sounds
+        self.sound_system.update_ambient_sounds(delta_time)
 
     def render(self):
         self.graphics.clear()
