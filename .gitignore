@@ -1,0 +1,45 @@
+# Python bytecode
+__pycache__/
+*.py[cod]
+
+# Virtual environments
+venv/
+env/
+.venv/
+
+# IDE-specific files
+.vscode/
+.idea/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+
+# Build directories
+build/
+dist/
+
+# Dependency directories
+lib/
+libs/
+
+# Configuration files
+*.ini
+*.cfg
+
+# Database files
+*.db
+*.sqlite3
+
+# Backup files
+*.bak
+*~
+
+# Environment variables
+.env
