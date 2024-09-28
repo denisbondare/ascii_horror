@@ -39,16 +39,38 @@ class SoundSystem:
 
     def generate_item_pickup_sound(self):
         duration = 0.1
-        f = np.linspace(440, 880, int(self.sample_rate * duration), False)
-        mono = np.sin(2 * np.pi * f * np.arange(int(self.sample_rate * duration)) / self.sample_rate)
+        beep_freq = 1000  # A 1kHz beep, typical for old computer systems
+        t = np.linspace(0, duration, int(self.sample_rate * duration), False)
+        mono = np.sin(2 * np.pi * beep_freq * t)
+        # Apply a simple envelope to avoid clicks
+        envelope = np.concatenate([np.linspace(0, 1, int(self.sample_rate * 0.01)), 
+                                   np.ones(int(self.sample_rate * 0.08)), 
+                                   np.linspace(1, 0, int(self.sample_rate * 0.01))])
+        mono = mono * envelope
         return self.to_stereo(mono)
 
     def generate_footstep_sound(self):
-        duration = 0.1
-        noise = self.generate_noise(duration)
-        envelope = np.linspace(1, 0, int(self.sample_rate * duration))
-        mono = noise * envelope
-        return self.to_stereo(mono)
+        duration = 0.2
+        # Generate a low frequency rumble
+        rumble_freq = 30  # 30 Hz for a deep, low sound
+        t = np.linspace(0, duration, int(self.sample_rate * duration), False)
+        rumble = np.sin(2 * np.pi * rumble_freq * t)
+        
+        # Generate some mechanical noise
+        noise = self.generate_noise(duration) * 0.3
+        
+        # Combine rumble and noise
+        mono = rumble * 0.7 + noise
+        
+        # Apply an envelope to shape the sound
+        envelope = np.concatenate([
+            np.linspace(0, 1, int(self.sample_rate * 0.05)),  # Attack
+            np.ones(int(self.sample_rate * 0.1)),             # Sustain
+            np.linspace(1, 0, int(self.sample_rate * 0.05))   # Release
+        ])
+        
+        mono = mono * envelope
+        return self.to_stereo(mono * 0.5)  # Reduce volume by half
 
     def generate_ambient_sound(self):
         duration = 1.0
@@ -68,7 +90,7 @@ class SoundSystem:
         return self.to_stereo(mono)
 
     def generate_distortion_sound(self):
-        duration = 1.0
+        duration = random.uniform(0.05, 0.2)
         noise = self.generate_noise(duration)
         crackle = np.random.choice([-1, 0, 1], size=int(self.sample_rate * duration), p=[0.05, 0.9, 0.05])
         hum = self.generate_sine_wave(50, duration) * 0.1

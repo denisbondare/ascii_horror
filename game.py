@@ -47,6 +47,7 @@ class Game:
         self.humidity_direction = random.choice([-1, 1])
         self.update_counter = 0
         self.last_update_time = time.time()
+        self.movement_step = 0
 
     def update_signal_strength(self, amount):
         self.signal_strength += amount
@@ -65,30 +66,35 @@ class Game:
 
         dx, dy = 0, 0
         moved = False
-        if keyboard.is_pressed('up') and self.player.y > 1:
-            self.vertical_step += 1
-            if self.vertical_step >= 2:
-                dy = -1
-                self.vertical_step = 0
-            moved = True
-        elif keyboard.is_pressed('down') and self.player.y < self.world.height - 2:
-            self.vertical_step += 1
-            if self.vertical_step >= 2:
-                dy = 1
-                self.vertical_step = 0
-            moved = True
-        elif keyboard.is_pressed('left') and self.player.x > 1:
-            dx = -1
-            moved = True
-        elif keyboard.is_pressed('right') and self.player.x < self.world.width - 2:
-            dx = 1
-            moved = True
-        elif keyboard.is_pressed('u'):
-            self.update_signal_strength(10)
-        elif keyboard.is_pressed('i'):
-            self.update_signal_strength(-10)
-        elif keyboard.is_pressed('esc'):
-            self.running = False
+        self.movement_step += 1
+        if self.movement_step >= 3:  # Slow down overall movement
+            if keyboard.is_pressed('up') and self.player.y > 1:
+                self.vertical_step += 1
+                if self.vertical_step >= 3:  # Further slow down vertical movement
+                    dy = -1
+                    self.vertical_step = 0
+                moved = True
+            elif keyboard.is_pressed('down') and self.player.y < self.world.height - 2:
+                self.vertical_step += 1
+                if self.vertical_step >= 3:  # Further slow down vertical movement
+                    dy = 1
+                    self.vertical_step = 0
+                moved = True
+            elif keyboard.is_pressed('left') and self.player.x > 1:
+                dx = -1
+                moved = True
+            elif keyboard.is_pressed('right') and self.player.x < self.world.width - 2:
+                dx = 1
+                moved = True
+            elif keyboard.is_pressed('u'):
+                self.update_signal_strength(10)
+            elif keyboard.is_pressed('i'):
+                self.update_signal_strength(-10)
+            elif keyboard.is_pressed('esc'):
+                self.running = False
+            
+            if moved:
+                self.movement_step = 0
 
         if not self.world.is_obstacle(self.player.x + dx, self.player.y + dy):
             self.world.move(dx, dy)  # Move the world instead of the player

@@ -11,7 +11,7 @@ class Graphics:
         self.buffer = [[' ' for _ in range(width)] for _ in range(height)]
         self.previous_buffer = [[' ' for _ in range(width)] for _ in range(height)]
         self.distortion_map = {}
-        self.distortion_duration = 10  # frames
+        self.distortion_duration = 2  # frames
         self.corrupted_lines = set()
         self.corrupted_line_duration = 5  # frames
         self.unseen_distortions = {}
