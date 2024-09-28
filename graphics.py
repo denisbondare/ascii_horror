@@ -1,4 +1,5 @@
 import os
+from utils import is_visible
 
 class Graphics:
     def __init__(self, width, height):
@@ -24,7 +25,6 @@ class Graphics:
 
     def render(self):
         if self.buffer != self.previous_buffer:
-            os.system('cls' if os.name == 'nt' else 'clear')
             print("\033[H", end="")  # Move cursor to top-left corner
             for row in self.buffer:
                 print(''.join(row))
@@ -33,3 +33,14 @@ class Graphics:
     def draw_text(self, x, y, text):
         for i, char in enumerate(text):
             self.draw_char(x + i, y, char)
+
+    def draw_world(self, world, player, visibility_radius):
+        for y in range(self.height):
+            for x in range(self.width):
+                if is_visible(player.x, player.y, x, y, visibility_radius):
+                    if world.is_obstacle(x, y):
+                        self.draw_char(x, y, '#')
+                    elif (x, y) in world.items:
+                        self.draw_char(x, y, world.items[(x, y)])
+                else:
+                    self.draw_char(x, y, ' ')
