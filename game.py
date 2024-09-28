@@ -1,4 +1,3 @@
-from config import *
 import keyboard
 import time
 import pygame
@@ -9,15 +8,15 @@ from utils import get_random_position, distance
 from sounds import SoundSystem
 
 class Game:
-    def __init__(self):
-        self.width = GAME_WIDTH
-        self.height = GAME_HEIGHT
-        self.graphics = Graphics(self.width, self.height)
-        self.world = World(self.width, self.height)
-        self.player = Player(PLAYER_START_X, PLAYER_START_Y)
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.graphics = Graphics(width, height)
+        self.world = World(width, height)
+        self.player = Player(width // 2, height // 2)
         self.sound_system = SoundSystem()
         self.running = True
-        self.visibility_radius = VISIBILITY_RADIUS
+        self.visibility_radius = 5
         self.step_counter = 0
         self.sound_system.play_music("ambient_horror")
         self.vertical_step = 0  # Add this line
@@ -75,7 +74,7 @@ class Game:
         self.sound_system.stop_music()
 
 def main_menu():
-    graphics = Graphics(GAME_WIDTH, GAME_HEIGHT)
+    graphics = Graphics(42, 22)
     sound_system = SoundSystem()
     sound_system.play_music("ambient_horror")
     t = 0
@@ -86,12 +85,12 @@ def main_menu():
         graphics.clear()
         graphics.draw_animated_background(t)
         graphics.draw_borders()
-        graphics.draw_text(16, 9, MENU_TITLE)
-        graphics.draw_text(18, 11, MENU_START_OPTION)
-        graphics.draw_text(18, 12, MENU_QUIT_OPTION)
+        graphics.draw_text(16, 9, "ASCII Horror")
+        graphics.draw_text(18, 11, "1. Start")
+        graphics.draw_text(18, 12, "2. Quit")
         graphics.render()
 
-        t += ANIMATION_SPEED  # Increment time for animation
+        t += 0.1  # Increment time for animation
 
         if keyboard.is_pressed('1'):
             return True
@@ -101,13 +100,13 @@ def main_menu():
 
         # Limit the frame rate to about 20 FPS
         elapsed_time = time.time() - start_time
-        if elapsed_time < 1/FPS:
-            time.sleep(1/FPS - elapsed_time)
+        if elapsed_time < 0.05:
+            time.sleep(0.05 - elapsed_time)
 
     return False
 
 if __name__ == "__main__":
     if main_menu():
-        game = Game()
+        game = Game(42, 22)
         game.run()
     print("Thanks for playing!")

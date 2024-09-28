@@ -1,4 +1,3 @@
-from config import SAMPLE_RATE, BUFFER_SIZE
 import numpy as np
 import pygame
 import threading
@@ -6,8 +5,8 @@ import queue
 
 class SoundSystem:
     def __init__(self):
-        self.sample_rate = SAMPLE_RATE
-        pygame.mixer.init(frequency=self.sample_rate, size=-16, channels=2, buffer=BUFFER_SIZE)
+        self.sample_rate = 44100
+        pygame.mixer.init(frequency=self.sample_rate, size=-16, channels=2, buffer=1024)
         self.sounds = {
             "item_pickup": self.generate_item_pickup_sound(),
             "footstep": self.generate_footstep_sound(),
