@@ -18,8 +18,11 @@ class Graphics:
         self.ripples = []
         self.corrupted_chars = '!#$%^&*()_-={}[]|\\:;"\'<>,.?/'
         self.cursed_chars = '⛧⍟⎈⎊⏧⏣☈☇⚯⚮⛮⛥⛤⛢⚝⚹⚶⚸⛇⛈⭘⭙⭔⭓⍜⍛⍭⍱⍲'
+        self.disable_render = False
 
     def clear(self):
+        if self.disable_render:
+            return
         self.buffer = [[' ' for _ in range(self.width)] for _ in range(self.height)]
 
     def draw_char(self, x, y, char):
@@ -35,6 +38,9 @@ class Graphics:
             self.draw_char(self.width - 1, y, '|')
 
     def render(self):
+        if self.disable_render:
+            return
+        
         # Move cursor to top-left corner
         sys.stdout.write("\033[H")
         sys.stdout.flush()
@@ -99,7 +105,7 @@ class Graphics:
                 else:
                     self.draw_char(screen_x, screen_y, ' ')
                     
-        ripples_pixels = self.draw_ripples(player)
+        self.draw_ripples(player)
                     
         for echo in world.echo_sources:
             world_x = echo.x
@@ -130,7 +136,7 @@ class Graphics:
 
     def draw_stats(self, samples_collected, total_samples, temperature, humidity, signal_strength):
         self.draw_text_area()
-        stats_text = f"{samples_collected}/{total_samples} | T: {temperature:.1f}°C | H: {humidity}% | Signal: {round(signal_strength)}%"
+        stats_text = f"{samples_collected}/{total_samples} | T: {'+' if temperature > 0 else ''}{temperature:.1f}°C | H: {humidity}% | Signal: {round(signal_strength)}%"
         self.draw_text(1, self.game_height + 1, stats_text)
 
     def apply_distortions(self, signal_strength):
@@ -148,14 +154,14 @@ class Graphics:
         # Generate new distortions
         if random.random() < distortion_intensity * 0.9:
             for _ in range(int(self.width * self.height * distortion_intensity * 0.1)):
-                x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 1)
+                x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 2)
                 char = random.choice(chars_set)
                 self.distortion_map[(x, y)] = [char, self.distortion_duration]
 
         # Update corrupted lines
         self.corrupted_lines = {line for line in self.corrupted_lines if random.random() > 0.2}
         if random.random() < distortion_intensity * 0.9:
-            new_corrupted_line = random.randint(0, self.height - 1)
+            new_corrupted_line = random.randint(0, self.height - 2)
             self.corrupted_lines.add(new_corrupted_line)
 
         # Update unseen area distortions
@@ -166,7 +172,7 @@ class Graphics:
 
         # Generate new unseen area distortions
         if random.random() < distortion_intensity * 0.9:
-            x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 1)
+            x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 2)
             char = random.choice('▒▓█▄▀░')
             self.unseen_distortions[(x, y)] = [char, self.distortion_duration]
 
@@ -181,7 +187,6 @@ class Graphics:
         self.ripples = [(x, y, r) for x, y, r in self.ripples if r < 100]  # Remove old ripples
 
     def draw_ripples(self, player):
-        ripples_pixels = []
         for x, y, radius in self.ripples:
             for dx in range(-radius, radius + 1):
                 for dy in range(-radius, radius + 1):
@@ -191,6 +196,4 @@ class Graphics:
                         screen_x = x - player.x + self.width // 2
                         screen_y = y - player.y + self.height // 2
                         self.draw_char(screen_x, screen_y, '~')
-                        ripples_pixels.append((screen_x, screen_y))
-        return ripples_pixels
 

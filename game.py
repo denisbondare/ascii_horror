@@ -49,9 +49,13 @@ class Game:
         self.last_update_time = time.time()
         self.movement_step = 0
         self.echo_cooldown = 0
+        
+    def set_temperature(self, value):
+        self.temperature = value
+        self.temperature = max(-148, min(100, self.temperature))
 
-    def update_signal_strength(self, amount):
-        self.signal_strength += amount
+    def set_signal_strength(self, value):
+        self.signal_strength = value
         self.signal_strength = max(1, min(100, self.signal_strength))
         self.sound_system.update_signal_strength(self.signal_strength)
 
@@ -106,12 +110,15 @@ class Game:
 
     def update(self):
         current_time = time.time()
-        frame_time = 1 / 30  # 30 FPS
-        frames_to_process = int((current_time - self.last_update_time) / frame_time)
+        frame_time = 1 / 60 
         
-        for _ in range(frames_to_process):
-            self.last_update_time += frame_time
-            self._process_frame(frame_time)
+        # Calculate the time elapsed since the last update
+        elapsed_time = current_time - self.last_update_time
+        
+        # Only process the last frame
+        if elapsed_time >= frame_time:
+            self.last_update_time = current_time
+            self._process_frame(elapsed_time)
 
     def _process_frame(self, delta_time):
         if self.text_display_active:
@@ -132,11 +139,6 @@ class Game:
         # Update temperature and humidity less frequently
         self.update_counter += 1
         if self.update_counter >= 10:  # Update every 10 frames
-            # Update temperature
-            self.temperature += self.temp_direction * random.uniform(0.1, 0.2)
-            if self.temperature <= 57.0 or self.temperature >= 59.0:
-                self.temp_direction *= -1
-            self.temperature = max(57.0, min(59.0, self.temperature))
 
             # Update humidity
             if random.random() < 0.3:  # 30% chance to change humidity each update
@@ -151,10 +153,6 @@ class Game:
         text_event = self.world.check_text_trigger(self.player.x, self.player.y)
         if text_event:
             self.show_text(text_event)
-
-        # Update signal strength and audio
-        if random.random() < 0.1:  # 10% chance to change signal strength each update
-            self.update_signal_strength(random.uniform(-2, 2))
 
         # Update ambient sounds
         self.sound_system.update_ambient_sounds(delta_time)
@@ -177,10 +175,12 @@ class Game:
         # Update ripples
         self.graphics.update_ripples()
 
-        # Update signal strength based on nearest echo source
-        if distance <= nearest_source.max_distance:
-            signal_change = -100 * (1 - distance**1.5 / nearest_source.max_distance)
-            self.update_signal_strength(min(0, max(-100, signal_change)))
+        signal_change = 91 * (distance**1.2 / nearest_source.max_distance)
+        temperature_change = -148.0 * (1 - distance**1.2 / nearest_source.max_distance) + random.uniform(-0.3, 0.3)
+        max_temp = 59 + random.uniform(-0.1, 0.1)
+        self.set_temperature(min(max_temp, max(-148.0, temperature_change)))
+        max_signal = 91 + random.uniform(-1, 1)+ random.uniform(-1, 1)
+        self.set_signal_strength(min(max_signal, max(1, signal_change)))
 
     def render(self):
         self.graphics.clear()
@@ -194,6 +194,7 @@ class Game:
             self.graphics.draw_stats(self.samples_collected, self.total_samples, self.temperature, self.humidity, self.signal_strength)
         
         self.graphics.render()
+        
 
     def run(self):
         if self.show_intro:
@@ -204,7 +205,7 @@ class Game:
             self.handle_input()
             self.update()
             self.render()
-            pygame.time.wait(50)  # Use pygame's wait function for consistent timing
+            #pygame.time.wait(50)  # Use pygame's wait function for consistent timing
         self.sound_system.stop_music()
 
     def show_text(self, text_lines):
