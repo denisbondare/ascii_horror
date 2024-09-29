@@ -82,6 +82,7 @@ class Game:
                 if self.text_fully_displayed:
                     self.next_text()
                 else:
+                    return
                     self.text_index = len(self.current_text)
                     self.text_fully_displayed = True
             return
@@ -136,15 +137,10 @@ class Game:
             return
 
         current_time = time.time()
-        frame_time = 1 / 10 
-        
         # Calculate the time elapsed since the last update
         elapsed_time = current_time - self.last_update_time
-        
-        # Only process the last frame
-        if elapsed_time >= frame_time:
-            self.last_update_time = current_time
-            self._process_frame(elapsed_time)
+
+        self._process_frame(elapsed_time)
 
         # Check win condition
         if self.samples_collected >= self.total_samples:
@@ -334,7 +330,18 @@ class Game:
             self.show_text(self.intro_text)
             self.show_intro = False
 
-        while self.running:
+        while self.running:            
+            current_time = time.time()
+            frame_time = 1 / 30           
+            
+            # Calculate the time elapsed since the last update
+            elapsed_time = current_time - self.last_update_time
+            
+            # Only process the last frame
+            if elapsed_time < frame_time:
+                continue                
+            
+            self.last_update_time = current_time
             self.handle_input()
             self.update()
             self.render()
@@ -402,8 +409,6 @@ def main_menu():
 
         # Limit the frame rate to about 20 FPS
         elapsed_time = time.time() - start_time
-        if elapsed_time < 0.05:
-            time.sleep(0.05 - elapsed_time)
 
     return False
 
@@ -415,3 +420,4 @@ if __name__ == "__main__":
                 break
         else:
             break
+    print("Bye")
