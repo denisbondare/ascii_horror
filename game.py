@@ -1,5 +1,6 @@
 import keyboard
 import time
+import math
 import pygame
 import random
 from graphics import Graphics
@@ -213,9 +214,23 @@ class Game:
         self.graphics.update_ripples()
 
         signal_change = 91 * (distance**1.5 / nearest_source.max_distance)
-        temperature_change = -148.0 * (1 - distance**1.7 / nearest_source.max_distance) + random.uniform(-0.3, 0.3)
+        # Calculate temperature based on distance to nearest source
         max_temp = 59 + random.uniform(-0.1, 0.1)
-        self.set_temperature(min(max_temp, max(-148.0, temperature_change)))
+        min_temp = -148.0
+        distance_factor = distance / nearest_source.max_distance
+        
+        # Use a sigmoid function for non-linear temperature change
+        sigmoid = 1 / (1 + math.exp(-50 * (distance_factor - 0.05)))
+        
+        temperature = min_temp + (max_temp - min_temp) * sigmoid
+        
+        # Add small random fluctuation
+        temperature += random.uniform(-0.3, 0.3)
+        
+        # Ensure temperature stays within bounds
+        temperature = max(min_temp, min(max_temp, temperature))
+        
+        self.set_temperature(temperature)
         max_signal = 91 + random.uniform(-1, 1)+ random.uniform(-1, 1)
         self.set_signal_strength(min(max_signal, max(1, signal_change)))
 
