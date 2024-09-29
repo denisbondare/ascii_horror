@@ -219,8 +219,8 @@ class World:
     def generate_echo_sources(self):
         num_sources = 1  # You can adjust this number
         accessible_positions = self.get_accessible_positions()
-        min_distance = 60  # Minimum distance from player, adjust as needed
-        max_distance = 80
+        min_distance = 30  # Minimum distance from player, adjust as needed
+        max_distance = 40
         
         for _ in range(num_sources):
             if not accessible_positions:

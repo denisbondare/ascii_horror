@@ -18,6 +18,10 @@ class Graphics:
         self.ripples = []
         self.corrupted_chars = '!#$%^&*()_-={}[]|\\:;"\'<>,.?/'
         self.cursed_chars = '⛧⍟⎈⎊⏧⏣☈☇⚯⚮⛮⛥⛤⛢⚝⚹⚶⚸⛇⛈⭘⭙⭔⭓⍜⍛⍭⍱⍲'
+        self.cursed_words = ['ĄBØMINĄTIØN', 'DÆMØN', 'DĘVĮŁ', 'ĘVĪŁ', 'FĪĘND', 'HĄUNT', 'HØRRØR', 'PHĄNTĄSM', 'SPĪRĪT', 'WRĄĪTH', 'BŁĄSPHĘMY', 'CĄRNĄGĘ', 'DĘSĘCRĄTĪØN', 'ĘNTRÅĪŁS', 'FŁĘSHGØŁĘM', 'GĪBBĘT', 'HĘŁŁSPĄWN', 'ĪMMØŁĄTĪØN', 'MĄDNĘSS', 'NĘCRØPHĄGĘ', 'PĘSTĪŁĘNCĘ', 'QUĘŁCH', 'RĄVĄGĘ', 'SŁĄUGHTĘR', 'TØRMĘNT', 'UNDĘĄD', 'VĪSCĘRĄ', 'WRĘTCH', 'YØKĄĪ']
+        self.obstacle_char = '▓'
+        self.unseen_char = '░'
+        self.empty_char = ' '
         self.disable_render = False
 
     def clear(self):
@@ -70,35 +74,62 @@ class Graphics:
         
         player_screen_x = self.width // 2
         player_screen_y = self.game_height // 2
+        
+        unseen_char = self.unseen_char
+        obstacle_char = self.obstacle_char
+        empty_char = self.empty_char
+        if distortion_intensity > 0.7 and random.random() < 0.11:
+            unseen_char = self.obstacle_char
+            obstacle_char = self.empty_char
+            empty_char = self.unseen_char
             
         for screen_y in range(self.height):
-            for screen_x in range(self.width):
-                if screen_y==18:
+            if screen_y == 18:
+                for screen_x in range(self.width):
                     self.draw_char(screen_x, screen_y, '-')
-                    continue
-                
+                continue
+            
+            line = []
+            for screen_x in range(self.width):
                 world_x = player.x + (screen_x - player_screen_x)
                 world_y = player.y + (screen_y - player_screen_y)
                 
                 if screen_y in self.corrupted_lines:
-                    self.draw_char(screen_x, screen_y, random.choice(chars_set))
+                    if distortion_intensity > 0.4 and random.random() < 0.3:
+                        cursed_word = random.choice(self.cursed_words)
+                        start_pos = random.randint(0, self.width - len(cursed_word))
+                        for i in range(self.width):
+                            if start_pos <= i < start_pos + len(cursed_word):
+                                line.append(cursed_word[i - start_pos])
+                            else:
+                                line.append(random.choice(chars_set))
+                    else:
+                        line.append(random.choice(chars_set))
                 elif (screen_x, screen_y) in self.distortion_map:
-                    self.draw_char(screen_x, screen_y, self.distortion_map[(screen_x, screen_y)][0])
-                elif screen_y<18 and 0 <= world_x < world.width and 0 <= world_y < world.height:
+                    line.append(self.distortion_map[(screen_x, screen_y)][0])
+                elif screen_y < 18 and 0 <= world_x < world.width and 0 <= world_y < world.height:
                     if is_visible(player.x, player.y, world_x, world_y, visibility_radius, world):
                         if world.is_obstacle(world_x, world_y):
-                            self.draw_char(screen_x, screen_y, '▓')
+                            line.append(obstacle_char)
                         elif (world_x, world_y) in world.items:
-                            self.draw_char(screen_x, screen_y, world.items[(world_x, world_y)])
+                            line.append(world.items[(world_x, world_y)])
                         else:
-                            self.draw_char(screen_x, screen_y, ' ')
+                            line.append(empty_char)
                     else:
                         if (screen_x, screen_y) in self.unseen_distortions:
-                            self.draw_char(screen_x, screen_y, self.unseen_distortions[(screen_x, screen_y)][0])
+                            line.append(self.unseen_distortions[(screen_x, screen_y)][0])
                         else:
-                            self.draw_char(screen_x, screen_y, '░')
+                            line.append(unseen_char)
                 else:
-                    self.draw_char(screen_x, screen_y, ' ')
+                    line.append(empty_char)
+            
+            # Ensure the line is exactly self.width characters long
+            line = line[:self.width]
+            if len(line) < self.width:
+                line.extend([empty_char] * (self.width - len(line)))
+            
+            for screen_x, char in enumerate(line):
+                self.draw_char(screen_x, screen_y, char)
                     
         self.draw_ripples(player)
                     
