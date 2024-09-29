@@ -50,7 +50,7 @@ class SoundSystem:
                                    np.ones(int(self.sample_rate * 0.08)), 
                                    np.linspace(1, 0, int(self.sample_rate * 0.01))])
         mono = mono * envelope
-        return self.to_stereo(mono)
+        return self.to_stereo(mono * 0.25)
 
     def generate_footstep_sound(self):
         duration = 0.2
@@ -73,7 +73,7 @@ class SoundSystem:
         ])
         
         mono = mono * envelope
-        return self.to_stereo(mono * 0.25)  # Reduce volume by half
+        return self.to_stereo(mono * 0.05)  # Reduce volume by half
 
     def generate_ambient_sound(self):
         duration = 1.0
@@ -89,6 +89,14 @@ class SoundSystem:
         waves = [self.generate_sine_wave(base_freq * h, duration) for h in harmonics]
         combined = sum(waves) / len(waves)
         noise = self.generate_noise(duration) * 0.1
+        # Apply low-pass filter to noise
+        cutoff_freq = 1320  # Adjust this value to change the filter's cutoff frequency
+        b, a = scipy.signal.butter(6, cutoff_freq / (self.sample_rate / 2), btype='low', analog=False)
+        filtered_noise = scipy.signal.lfilter(b, a, noise)
+        
+        # Replace the original noise with the filtered noise
+        noise = noise * 0.1 + filtered_noise * 0.9
+        
         
         # Add low melody and harmony
         low_notes = [77.78, 87.31, 103.83, 116.54, 138.59]  # D2, F2, G#2, A#2, C3
@@ -140,7 +148,7 @@ class SoundSystem:
         melody = (low_melody + high_melody) / 2
         
         melody = melody / np.max(np.abs(melody))  # Normalize
-        mono = (combined * 0.35 + noise * 0.35 + melody * 0.3) * 0.5
+        mono = (combined * 0.3 + noise * 0.3 + melody * 0.4) * 0.5
         return self.to_stereo(mono)
 
     def generate_distortion_sound(self):
@@ -232,7 +240,7 @@ class SoundSystem:
             freq = random.uniform(100, 500)
             noise = self.generate_noise(duration) * 0.3
             tone = self.generate_sine_wave(freq, duration) * 0.2
-            sound = self.to_stereo(noise + tone)
+            sound = self.to_stereo((noise + tone) * 0.35)
             sounds.append(pygame.sndarray.make_sound((sound * 32767).astype(np.int16)))
         return sounds
 
