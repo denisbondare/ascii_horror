@@ -33,8 +33,7 @@ class Game:
             "Signal strength: 91%.",
             "Mission: Collect 10 material samples.",
             "Arrow keys to control machine.",
-            "Automatic evacuation upon completion.",
-            "Warning: Unusual readings detected.",
+            "Caution: Unusual readings detected.",
             "Press Enter to initiate operation."
         ]
         self.show_intro = True

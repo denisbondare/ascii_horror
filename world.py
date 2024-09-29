@@ -92,16 +92,16 @@ class World:
         #self.generate_echo_sources()
 
         self.scary_texts = [
-            "⛧ You're mine now.",
-            "⚮ Leave while you can.",
-            "⛥ I see you, intruder.",
-            "⚝ Your fear feeds me.",
-            "⍜ Run, little one.",
-            "⛇ This place hungers.",
-            "⚹ You'll never escape.",
-            "⍭ I am everywhere.",
-            "⛮ Your time is short.",
-            "⚶ Join us in darkness."
+            "⛧ ŸØÜ'RÈ MÏÑÈ ÑØW.",
+            "⚮ ŁÈÅVÈ WHÏŁÈ ŸØÜ ÇÅÑ.",
+            "⛥ Ï §ÈÈ ŸØÜ, ÏÑTRÜÐÈR.",
+            "⚝ ŸØÜR FÈÅR FÈÈÐ§ MÈ.",
+            "⍜ RÜÑ, ŁÏTTŁÈ ØÑÈ.",
+            "⛇ THÏ§ PŁÅÇÈ HÜÑGÈR§.",
+            "⚹ ŸØÜ'ŁŁ ÑÈVÈR È§ÇÅPÈ.",
+            "⍭ Ï ÅM ÈVÈRŸWHÈRÈ.",
+            "⛮ ŸØÜR TÏMÈ Ï§ §HØRT.",
+            "⚶ JØÏÑ Ü§ ÏÑ ÐÅRKÑÈ§§."
         ]
         self.used_scary_texts = set()
         
@@ -109,12 +109,12 @@ class World:
             "low_temperature": "WARNING: Critically low temp.",
             "high_temperature": "ALERT: Extreme heat.",
             "low_signal": "CAUTION: Weak signal.",
-            "very_low_signal": "DANGER: Signal loss.",
+            "very_low_signal": "ALERT: Signal loss.",
             "high_humidity": "NOTICE: High humidity.",
             "sensor_malfunction": "ERROR: Sensors corrupted.",
-            "unknown_readings": "ANOMALY: Unknown energy.",
+            "unknown_readings": "NOTICE: Unknown signal.",
             "power_fluctuation": "WARNING: Power unstable.",
-            "radiation_spike": "ALERT: Radiation detected.",
+            "radiation_spike": "NOTICE: Radiation detected.",
             "magnetic_interference": "CAUTION: Magnetic interference."
         }
 
