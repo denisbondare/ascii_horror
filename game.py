@@ -202,7 +202,7 @@ class Game:
         self.echo_cooldown -= 1
         if self.echo_cooldown <= 0:
             if nearest_source and distance < nearest_source.max_distance:  # Only play echo if within range
-                direction = (nearest_source.x - self.player.x) / distance
+                direction = 0 if distance == 0 else (nearest_source.x - self.player.x) / distance
                 self.sound_system.play_echo(direction, distance)
                 # Calculate screen coordinates for the echo source
                 self.graphics.add_ripple(nearest_source.x, nearest_source.y)

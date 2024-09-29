@@ -288,3 +288,4 @@ class SoundSystem:
             
             pygame_sound = pygame.sndarray.make_sound((sound * 32767).astype(np.int16))
             self.sound_queue.put(("echo", pygame_sound))
+2

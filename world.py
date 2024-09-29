@@ -1,39 +1,84 @@
 import random
+import time
 from utils import get_random_position, distance, generate_perlin_noise
 from collections import deque
+import heapq
 
 class EchoSource:
     def __init__(self, x, y, player):
         self.x = x
         self.y = y
-        self.move_cooldown = 0
-        self.move_direction = random.choice([(0, 1), (0, -1), (1, 0), (-1, 0)])
-        self.max_distance = 200
         self.player = player
         self.speed = 2
+        self.path = []
+        self.path_update_cooldown = 0
+        self.max_distance = 200
+        self.last_known_player_pos = (player.x, player.y)
+        self.last_move_time = time.time()
+
     def move(self, world):
-        self.move_cooldown -= 1
-        if self.move_cooldown <= 0:
-            dx = self.player.x - self.x
-            dy = self.player.y - self.y
-            
-            # Normalize the direction vector
-            length = max(abs(dx), abs(dy), 1)
-            dx = dx / length
-            dy = dy / length
-            
-            # Round to nearest integer (-1, 0, or 1)
-            dx = round(dx)
-            dy = round(dy)
-            
-            new_x = self.x + dx * self.speed
-            new_y = self.y + dy * self.speed
-            
-            if 0 <= new_x < world.width and 0 <= new_y < world.height and not world.is_obstacle(new_x, new_y):
-                self.x = new_x
-                self.y = new_y
-            
-            self.move_cooldown = random.randint(300, 300)  # Slow down the movement
+        self.last_move_time = time.time()
+        current_player_pos = (self.player.x, self.player.y)
+        
+        # Check if player has moved significantly
+        if distance(self.last_known_player_pos[0], self.last_known_player_pos[1], current_player_pos[0], current_player_pos[1]) > 10:
+            self.update_path(world)
+            self.last_known_player_pos = current_player_pos
+        
+        if not self.path:
+            self.update_path(world)
+        
+        if self.path:
+            next_x, next_y = self.path.pop(0)
+            if not world.is_obstacle(next_x, next_y):
+                self.x, self.y = next_x, next_y
+        
+        self.path_update_cooldown -= 1
+        if self.path_update_cooldown <= 0:
+            self.update_path(world)
+
+    def update_path(self, world):
+        self.path = self.find_path(world, (self.x, self.y), (self.player.x, self.player.y))
+        self.path_update_cooldown = random.randint(160, 240)  # Update path every 4-6 seconds (assuming 30 FPS)
+
+    def find_path(self, world, start, goal):
+        def heuristic(a, b):
+            return abs(b[0] - a[0]) + abs(b[1] - a[1])
+
+        def get_neighbors(pos):
+            x, y = pos
+            neighbors = [(x+1, y), (x-1, y), (x, y+1), (x, y-1)]
+            return [(nx, ny) for nx, ny in neighbors if 0 <= nx < world.width and 0 <= ny < world.height and not world.is_obstacle(nx, ny)]
+
+        frontier = []
+        heapq.heappush(frontier, (0, start))
+        came_from = {start: None}
+        cost_so_far = {start: 0}
+
+        while frontier:
+            current = heapq.heappop(frontier)[1]
+
+            if current == goal:
+                break
+
+            for next in get_neighbors(current):
+                new_cost = cost_so_far[current] + 1
+                if next not in cost_so_far or new_cost < cost_so_far[next]:
+                    cost_so_far[next] = new_cost
+                    priority = new_cost + heuristic(goal, next)
+                    heapq.heappush(frontier, (priority, next))
+                    came_from[next] = current
+
+        # Reconstruct path
+        path = []
+        current = goal
+        while current != start:
+            path.append(current)
+            current = came_from.get(current)
+            if current is None:  # No path found
+                return []
+        path.reverse()
+        return path[:self.speed]  # Return only the next few steps based on speed
 
 class World:
     def __init__(self, width, height, player):
@@ -174,11 +219,19 @@ class World:
     def generate_echo_sources(self):
         num_sources = 3  # You can adjust this number
         accessible_positions = self.get_accessible_positions()
+        min_distance = 50  # Minimum distance from player, adjust as needed
         
         for _ in range(num_sources):
             if not accessible_positions:
                 break  # Stop if we run out of accessible positions
-            pos = random.choice(accessible_positions)
+            
+            valid_positions = [pos for pos in accessible_positions 
+                               if distance(pos[0], pos[1], self.player.x, self.player.y) >= min_distance]
+            
+            if not valid_positions:
+                break  # No valid positions far enough from the player
+            
+            pos = random.choice(valid_positions)
             self.echo_sources.append(EchoSource(pos[0], pos[1], self.player))
             accessible_positions.remove(pos)
 
@@ -205,8 +258,11 @@ class World:
         return accessible
 
     def update_echo_sources(self):
-        for source in self.echo_sources:
-            source.move(self)
+        current_time = time.time()
+        for source in self.echo_sources:            
+            # Move once every 2 seconds (adjust this value as needed)
+            if current_time - source.last_move_time >= 2:
+                source.move(self)
 
     def get_nearest_echo_source(self, x, y):
         if not self.echo_sources:
