@@ -9,7 +9,7 @@ class EchoSource:
         self.x = x
         self.y = y
         self.player = player
-        self.speed = 2
+        self.speed = 1
         self.path = []
         self.path_update_cooldown = 0
         self.max_distance = 200
@@ -217,16 +217,18 @@ class World:
         self.text_triggers = new_text_triggers
 
     def generate_echo_sources(self):
-        num_sources = 3  # You can adjust this number
+        num_sources = 1  # You can adjust this number
         accessible_positions = self.get_accessible_positions()
-        min_distance = 50  # Minimum distance from player, adjust as needed
+        min_distance = 60  # Minimum distance from player, adjust as needed
+        max_distance = 80
         
         for _ in range(num_sources):
             if not accessible_positions:
                 break  # Stop if we run out of accessible positions
             
             valid_positions = [pos for pos in accessible_positions 
-                               if distance(pos[0], pos[1], self.player.x, self.player.y) >= min_distance]
+                               if distance(pos[0], pos[1], self.player.x, self.player.y) >= min_distance
+                               and distance(pos[0], pos[1], self.player.x, self.player.y) <= max_distance]
             
             if not valid_positions:
                 break  # No valid positions far enough from the player

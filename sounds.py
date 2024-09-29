@@ -3,6 +3,7 @@ import pygame
 import threading
 import queue
 import random
+import scipy.signal
 
 class SoundSystem:
     def __init__(self):
@@ -207,15 +208,27 @@ class SoundSystem:
 
     def generate_typing_sound(self):
         duration = 0.05
-        noise = self.generate_noise(duration)
-        envelope = np.linspace(1, 0, int(self.sample_rate * duration))
-        mono = noise * envelope * 0.3
+        # Generate a lower frequency base sound
+        base_freq = 100  # Lower frequency for a more natural sound
+        t = np.linspace(0, duration, int(self.sample_rate * duration), False)
+        base_sound = np.sin(2 * np.pi * base_freq * t)
+        
+        # Add some soft noise for texture
+        noise = self.generate_noise(duration) * 0.1
+        
+        # Combine base sound and noise
+        combined = base_sound + noise
+        
+        # Apply an envelope to shape the sound
+        envelope = np.exp(-t * 20)  # Exponential decay for a more natural fade-out
+        
+        mono = combined * envelope * 0.4  # Reduced volume
         return self.to_stereo(mono)
 
     def generate_ambient_sounds(self):
         sounds = []
-        for _ in range(5):  # Generate 5 different ambient sounds
-            duration = random.uniform(0.2, 0.5)
+        for _ in range(15):  # Generate 15 different ambient sounds
+            duration = random.uniform(0.15, 0.5)
             freq = random.uniform(100, 500)
             noise = self.generate_noise(duration) * 0.3
             tone = self.generate_sine_wave(freq, duration) * 0.2
@@ -233,7 +246,7 @@ class SoundSystem:
 
     def get_ambient_interval(self):
         # Interval decreases as signal strength decreases
-        return max(0.5, 5 * (self.signal_strength / 100))
+        return min(5, max(0.05, 2 * (self.signal_strength**0.7 / 100)))
 
     def play_random_ambient_sound(self):
         if not self.enabled:
@@ -251,24 +264,52 @@ class SoundSystem:
         self.ambient_channel.set_volume(noise_volume * 0.5)  # Max volume of 0.5 for ambient sounds
 
     def generate_echo_sound(self):
-        duration = 1.0
+        duration = random.uniform(7.0, 9.0)  # Variable duration for unpredictability
         t = np.linspace(0, duration, int(self.sample_rate * duration), False)
         
-        # Generate a mix of sine waves for an eerie sound
-        freqs = [100, 200, 300, 400]
-        sound = np.zeros_like(t)
-        for freq in freqs:
-            sound += np.sin(2 * np.pi * freq * t) * (1 / len(freqs))
+        # Generate a base for the unsettling sound
+        base_freq = random.uniform(40, 50)  # Random base frequency for variability
+        pitch_curve = np.cumsum(np.random.normal(0, 0.5, len(t)))  # Natural, random pitch curve
+        pitch_curve = pitch_curve / np.max(np.abs(pitch_curve)) * 20  # Normalize and scale
+        base_sound = 0.7 * np.tanh(np.sin(2 * np.pi * (base_freq + pitch_curve) * t))  # Use tanh for soft clipping
         
-        # Apply an envelope to fade in and out
-        envelope = np.concatenate([
-            np.linspace(0, 1, int(self.sample_rate * 0.1)),
-            np.ones(int(self.sample_rate * 0.8)),
-            np.linspace(1, 0, int(self.sample_rate * 0.1))
-        ])
+        # Add a distorted, low-pitched scream/moo component with slow vibrato
+        scream_freq = random.uniform(50, 60)
+        scream_mod = 60 * np.cumsum(np.random.normal(0, 0.3, len(t)))  # Another random curve
+        scream_mod = scream_mod / np.max(np.abs(scream_mod))
+        vibrato_rate = random.uniform(0.7, 1.2)  # Hz, adjust for desired vibrato speed
+        vibrato_depth = random.uniform(1.5, 2.5)  # Hz, adjust for desired vibrato intensity
+        vibrato = vibrato_depth * np.sin(2 * np.pi * vibrato_rate * t)
+        scream = 0.5 * np.tanh(np.sin(2 * np.pi * (scream_freq + scream_mod + vibrato) * t))
+        
+        # Add a deep, rumbling component
+        rumble_freq = random.uniform(20, 30)
+        rumble = 0.6 * np.tanh(np.sin(2 * np.pi * rumble_freq * t))
+        
+        # Combine all components with some randomness
+        sound = base_sound + scream + rumble
+        #sound += 0.2 * self.generate_noise(duration)  # Add some noise for texture
+        
+        # Apply a more natural, asymmetric envelope
+        attack = np.linspace(0, 1, int(self.sample_rate * 1.0))  # Longer attack for 7-9 second duration
+        decay = np.exp(-np.linspace(0, 3, int(self.sample_rate * (duration - 1.0))))  # Adjusted decay
+        envelope = np.concatenate([attack, decay])[:len(sound)]
         sound *= envelope
         
-        return self.to_stereo(sound * 0.3)  # Reduce volume
+        # Add some random distortions
+        distortion_points = np.random.randint(0, len(sound), 50)  # Increased number of distortion points
+        sound[distortion_points] *= np.random.uniform(0.5, 1.5, 50)
+        
+        # Normalize
+        sound = sound / np.max(np.abs(sound))
+        
+        # Apply low-pass filter2
+        cutoff_freq = 550  # Adjust this value to change the filter's cutoff frequency
+        b, a = scipy.signal.butter(6, cutoff_freq / (self.sample_rate / 2), btype='low', analog=False)
+        filtered_sound = scipy.signal.lfilter(b, a, sound)
+        
+        # Adjust volume and convert to stereo
+        return self.to_stereo(filtered_sound * random.uniform(0.35, 0.4))  # Randomize final volume slightly
 
     def play_echo(self, direction, distance):
         if not self.enabled:

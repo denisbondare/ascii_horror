@@ -70,11 +70,6 @@ class Graphics:
         
         player_screen_x = self.width // 2
         player_screen_y = self.game_height // 2
-        
-        if random.random() > 0.04:
-            visibility_radius = visibility_radius
-        else:
-            visibility_radius = visibility_radius * 0.66
             
         for screen_y in range(self.height):
             for screen_x in range(self.width):

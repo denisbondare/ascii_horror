@@ -160,7 +160,8 @@ class Game:
         if self.text_display_active:
             if time.time() - self.last_type_time > 0.02 and self.text_index < len(self.current_text):
                 self.text_index += random.randint(1, 2)
-                self.sound_system.play_sound("typing")
+                if random.random() < 0.3:
+                    self.sound_system.play_sound("typing")
                 self.last_type_time = time.time()
             elif self.text_index >= len(self.current_text):
                 self.text_fully_displayed = True
@@ -205,8 +206,8 @@ class Game:
                 direction = 0 if distance == 0 else (nearest_source.x - self.player.x) / distance
                 self.sound_system.play_echo(direction, distance)
                 # Calculate screen coordinates for the echo source
-                self.graphics.add_ripple(nearest_source.x, nearest_source.y)
-                self.echo_cooldown = random.randint(30, 60)  # Wait 30-60 frames before next echo
+                #self.graphics.add_ripple(nearest_source.x, nearest_source.y)
+                self.echo_cooldown = random.randint(50, 80)  # Wait before next echo
 
         # Update ripples
         self.graphics.update_ripples()
@@ -219,7 +220,7 @@ class Game:
         self.set_signal_strength(min(max_signal, max(1, signal_change)))
 
         # Handle echo effects and scary texts
-        if nearest_source and distance < nearest_source.max_distance / 4:
+        if nearest_source and distance < nearest_source.max_distance / 10:
             if time.time() - self.last_scary_text_time > 15 and random.random() < 0.1:
                 self.show_message(self.world.get_random_scary_text(), "scary")
 
@@ -250,7 +251,7 @@ class Game:
         #    self.show_message(self.world.get_system_text("high_humidity"), "system")
 
         # Random system messages (very rare)
-        if random.random() < 0.005:  # Adjust this probability as needed
+        if random.random() < 0.002:  # Adjust this probability as needed
             random_message = random.choice(["sensor_malfunction", "unknown_readings", "power_fluctuation", "radiation_spike", "magnetic_interference"])
             if self.check_message_cooldown(random_message, current_time):
                 self.show_message(self.world.get_system_text(random_message), "system")
@@ -277,7 +278,8 @@ class Game:
             if self.message_index < len(self.current_message):
                 if current_time - self.message_start_time > 0.02 * self.message_index:
                     self.message_index += random.randint(1, 2)
-                    self.sound_system.play_sound("typing")
+                    if random.random() < 0.3:
+                        self.sound_system.play_sound("typing")
             elif current_time - self.message_start_time > 2:
                 self.current_message = ""
                 self.message_type = None
@@ -409,6 +411,8 @@ def main_menu():
 
         # Limit the frame rate to about 20 FPS
         elapsed_time = time.time() - start_time
+        if elapsed_time < 0.05:
+            time.sleep(0.05 - elapsed_time)
 
     return False
 
