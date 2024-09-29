@@ -264,7 +264,16 @@ class World:
         current_time = time.time()
         for source in self.echo_sources:            
             # Move once every X seconds
-            if current_time - source.last_move_time >= source.move_cooldown:
+            # Calculate distance to player
+            dist_to_player = distance(source.x, source.y, self.player.x, self.player.y)
+            
+            # Adjust move cooldown based on distance
+            if dist_to_player > 30:
+                move_cooldown = source.move_cooldown * 3
+            else:
+                # Linear progression
+                move_cooldown = 0.033 + (dist_to_player / 30) * (source.move_cooldown * 3 - 0.033)
+            if current_time - source.last_move_time >= move_cooldown:
                 source.move(self)
 
     def get_nearest_echo_source(self, x, y):

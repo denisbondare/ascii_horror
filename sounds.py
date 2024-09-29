@@ -309,7 +309,7 @@ class SoundSystem:
         filtered_sound = scipy.signal.lfilter(b, a, sound)
         
         # Adjust volume and convert to stereo
-        return self.to_stereo(filtered_sound * random.uniform(0.7, 0.7))  # Randomize final volume slightly
+        return self.to_stereo(filtered_sound * random.uniform(0.8, 0.8))  # Randomize final volume slightly
 
     def play_echo(self, direction, distance):
         if not self.enabled:
@@ -326,6 +326,13 @@ class SoundSystem:
                 sound[:, 1] *= max(0, 1 + direction)  # Reduce right channel
             elif direction > 0:  # Source is to the right
                 sound[:, 0] *= max(0, 1 - direction)  # Reduce left channel
+                
+            if distance < 30:
+                # Apply extra distortion based on distance
+                distortion_factor = max(0, (30 - distance) / 30)  # Smoothly increases as distance decreases
+                distortion = np.tanh(sound * (1 + 3 * distortion_factor))  # Soft clipping distortion
+                sound = sound * (1 - distortion_factor) + distortion * distortion_factor  # Blend original and distorted sound
+                
             
             pygame_sound = pygame.sndarray.make_sound((sound * 32767).astype(np.int16))
             self.sound_queue.put(("echo", pygame_sound))

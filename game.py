@@ -30,7 +30,7 @@ class Game:
         self.intro_text = [            
             "Depth: 2,743 meters below surface.",
             "Temperature: 57°C. Humidity: 98%.",
-            "Signal strength: 80%.",
+            "Signal strength: 91%.",
             "Mission: Collect 10 material samples.",
             "Arrow keys to control machine.",
             "Automatic evacuation upon completion.",
@@ -43,7 +43,7 @@ class Game:
         self.total_samples = 10
         self.temperature = 57.0
         self.humidity = 98
-        self.signal_strength = 80
+        self.signal_strength = 91
         self.temp_direction = random.choice([-1, 1])
         self.humidity_direction = random.choice([-1, 1])
         self.update_counter = 0
@@ -67,7 +67,7 @@ class Game:
         self.low_signal_start_time = None
         self.total_time = 0
         self.start_time = time.time()
-        self.echo_creation_delay = 20
+        self.echo_creation_delay = 30
         self.max_distance_to_echo = 200
         
     def set_temperature(self, value):
@@ -93,7 +93,7 @@ class Game:
         dx, dy = 0, 0
         moved = False
         self.movement_step += 1
-        if self.movement_step >= 2:  # Slow down overall movement
+        if not self.game_over and not self.game_won and self.movement_step >= 2:  # Slow down overall movement
             if keyboard.is_pressed('up') and self.player.y > 1:
                 self.vertical_step += 1
                 if self.vertical_step >= 3:  # Further slow down vertical movement
@@ -155,10 +155,10 @@ class Game:
             self.game_won = True            
 
         # Check lose condition
-        if self.signal_strength < 10:
+        if self.signal_strength <= 15:
             if self.low_signal_start_time is None:
                 self.low_signal_start_time = current_time
-            elif current_time - self.low_signal_start_time >= 5:
+            elif self.signal_strength <= 2 or current_time - self.low_signal_start_time >= 7:
                 self.game_over = True
         else:
             self.low_signal_start_time = None
@@ -217,7 +217,16 @@ class Game:
                 self.sound_system.play_echo(direction, distance)
                 # Calculate screen coordinates for the echo source
                 #self.graphics.add_ripple(nearest_source.x, nearest_source.y)
-                self.echo_cooldown = random.randint(50, 80)  # Wait before next echo
+                # Calculate cooldown based on distance to player
+                if distance > 30:
+                    self.echo_cooldown = random.randint(50, 80)
+                else:
+                    # Linear interpolation between 25 and 50 based on distance
+                    min_cooldown = 25
+                    max_cooldown = 50
+                    cooldown_range = max_cooldown - min_cooldown
+                    distance_factor = distance / 30  # Normalized distance (0 to 1)
+                    self.echo_cooldown = int(min_cooldown + (cooldown_range * distance_factor))
 
         # Update ripples
         self.graphics.update_ripples()
@@ -358,7 +367,7 @@ class Game:
 
         while self.running:            
             current_time = time.time()
-            frame_time = 1 / 30           
+            frame_time = 1 / 60         
             
             # Calculate the time elapsed since the last update
             elapsed_time = current_time - self.last_update_time
