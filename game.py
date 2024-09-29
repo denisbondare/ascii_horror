@@ -68,6 +68,7 @@ class Game:
         self.start_time = time.time()
         self.echo_creation_delay = 30
         self.max_distance_to_echo = 200
+        self.slow_down_step = 7
         
     def set_temperature(self, value):
         self.temperature = value
@@ -92,7 +93,7 @@ class Game:
         dx, dy = 0, 0
         moved = False
         self.movement_step += 1
-        if not self.game_over and not self.game_won and self.movement_step >= 2:  # Slow down overall movement
+        if not self.game_over and not self.game_won and self.movement_step >= self.slow_down_step:  # Slow down overall movement
             if keyboard.is_pressed('up') and self.player.y > 1:
                 self.vertical_step += 1
                 if self.vertical_step >= 3:  # Further slow down vertical movement
@@ -166,7 +167,7 @@ class Game:
         if self.text_display_active:
             if time.time() - self.last_type_time > 0.02 and self.text_index < len(self.current_text):
                 self.text_index += random.randint(1, 2)
-                if random.random() < 0.3:
+                if random.random() < 0.5:
                     self.sound_system.play_sound("typing")
                 self.last_type_time = time.time()
             elif self.text_index >= len(self.current_text):
@@ -310,7 +311,7 @@ class Game:
             if self.message_index < len(self.current_message):
                 if current_time - self.message_start_time > 0.02 * self.message_index:
                     self.message_index += random.randint(1, 2)
-                    if random.random() < 0.3:
+                    if random.random() < 0.5:
                         self.sound_system.play_sound("typing")
             elif current_time - self.message_start_time > 2:
                 self.current_message = ""

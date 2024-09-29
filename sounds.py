@@ -50,7 +50,7 @@ class SoundSystem:
                                    np.ones(int(self.sample_rate * 0.08)), 
                                    np.linspace(1, 0, int(self.sample_rate * 0.01))])
         mono = mono * envelope
-        return self.to_stereo(mono * 0.25)
+        return self.to_stereo(mono * 0.05)
 
     def generate_footstep_sound(self):
         duration = 0.2
@@ -73,7 +73,7 @@ class SoundSystem:
         ])
         
         mono = mono * envelope
-        return self.to_stereo(mono * 0.05)  # Reduce volume by half
+        return self.to_stereo(mono * 0.015)  # Reduce volume by half
 
     def generate_ambient_sound(self):
         duration = 1.0
@@ -217,7 +217,7 @@ class SoundSystem:
     def generate_typing_sound(self):
         duration = 0.05
         # Generate a lower frequency base sound
-        base_freq = 100  # Lower frequency for a more natural sound
+        base_freq = 200  # Lower frequency for a more natural sound
         t = np.linspace(0, duration, int(self.sample_rate * duration), False)
         base_sound = np.sin(2 * np.pi * base_freq * t)
         
@@ -230,7 +230,7 @@ class SoundSystem:
         # Apply an envelope to shape the sound
         envelope = np.exp(-t * 20)  # Exponential decay for a more natural fade-out
         
-        mono = combined * envelope * 0.4  # Reduced volume
+        mono = combined * envelope * 0.1  # Reduced volume
         return self.to_stereo(mono)
 
     def generate_ambient_sounds(self):
