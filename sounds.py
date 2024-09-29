@@ -304,12 +304,12 @@ class SoundSystem:
         sound = sound / np.max(np.abs(sound))
         
         # Apply low-pass filter2
-        cutoff_freq = 550  # Adjust this value to change the filter's cutoff frequency
+        cutoff_freq = 550 + random.uniform(-40, 40)  # Adjust this value to change the filter's cutoff frequency
         b, a = scipy.signal.butter(6, cutoff_freq / (self.sample_rate / 2), btype='low', analog=False)
         filtered_sound = scipy.signal.lfilter(b, a, sound)
         
         # Adjust volume and convert to stereo
-        return self.to_stereo(filtered_sound * random.uniform(0.35, 0.4))  # Randomize final volume slightly
+        return self.to_stereo(filtered_sound * random.uniform(0.7, 0.7))  # Randomize final volume slightly
 
     def play_echo(self, direction, distance):
         if not self.enabled:

@@ -67,6 +67,8 @@ class Game:
         self.low_signal_start_time = None
         self.total_time = 0
         self.start_time = time.time()
+        self.echo_creation_delay = 20
+        self.max_distance_to_echo = 200
         
     def set_temperature(self, value):
         self.temperature = value
@@ -91,7 +93,7 @@ class Game:
         dx, dy = 0, 0
         moved = False
         self.movement_step += 1
-        if self.movement_step >= 3:  # Slow down overall movement
+        if self.movement_step >= 2:  # Slow down overall movement
             if keyboard.is_pressed('up') and self.player.y > 1:
                 self.vertical_step += 1
                 if self.vertical_step >= 3:  # Further slow down vertical movement
@@ -110,18 +112,18 @@ class Game:
             elif keyboard.is_pressed('right') and self.player.x < self.world.width - 2:
                 dx = 1
                 moved = True
-            elif keyboard.is_pressed('u'):
-                self.update_signal_strength(10)
-            elif keyboard.is_pressed('i'):
-                self.update_signal_strength(-10)
+            #elif keyboard.is_pressed('u'):
+            #    self.update_signal_strength(10)
+            #elif keyboard.is_pressed('i'):
+            #    self.update_signal_strength(-10)
             elif keyboard.is_pressed('esc'):
                 self.running = False
             # Test keys for winning and losing
-            elif keyboard.is_pressed('w'):  # 'w' for win
-                self.samples_collected = self.total_samples
-            elif keyboard.is_pressed('l'):  # 'l' for lose
-                self.signal_strength = 1
-                self.low_signal_start_time = time.time() - 6  # Force immediate loss
+            #elif keyboard.is_pressed('w'):  # 'w' for win
+            #    self.samples_collected = self.total_samples
+            #elif keyboard.is_pressed('l'):  # 'l' for lose
+            #    self.signal_strength = 1
+            #    self.low_signal_start_time = time.time() - 6  # Force immediate loss
 
             if moved:
                 self.movement_step = 0
@@ -140,13 +142,17 @@ class Game:
         current_time = time.time()
         # Calculate the time elapsed since the last update
         elapsed_time = current_time - self.last_update_time
+        self.total_time = int(time.time() - self.start_time)
+        
+        if self.total_time > self.echo_creation_delay and len(self.world.echo_sources) == 0:
+            self.world.generate_echo_sources()
+            
 
         self._process_frame(elapsed_time)
 
         # Check win condition
         if self.samples_collected >= self.total_samples:
-            self.game_won = True
-            self.total_time = int(time.time() - self.start_time)
+            self.game_won = True            
 
         # Check lose condition
         if self.signal_strength < 10:
@@ -200,10 +206,13 @@ class Game:
         
         nearest_source, distance = self.world.get_nearest_echo_source(self.player.x, self.player.y)
         
+        if not nearest_source:
+            distance = self.max_distance_to_echo
+        
         # Handle echo effects
         self.echo_cooldown -= 1
         if self.echo_cooldown <= 0:
-            if nearest_source and distance < nearest_source.max_distance:  # Only play echo if within range
+            if nearest_source and distance < self.max_distance_to_echo:  # Only play echo if within range
                 direction = 0 if distance == 0 else (nearest_source.x - self.player.x) / distance
                 self.sound_system.play_echo(direction, distance)
                 # Calculate screen coordinates for the echo source
@@ -213,11 +222,11 @@ class Game:
         # Update ripples
         self.graphics.update_ripples()
 
-        signal_change = 91 * (distance**1.5 / nearest_source.max_distance)
+        signal_change = 91 * (distance**1.5 / self.max_distance_to_echo)
         # Calculate temperature based on distance to nearest source
         max_temp = 59 + random.uniform(-0.1, 0.1)
         min_temp = -148.0
-        distance_factor = distance / nearest_source.max_distance
+        distance_factor = distance / self.max_distance_to_echo
         
         # Use a sigmoid function for non-linear temperature change
         sigmoid = 1 / (1 + math.exp(-50 * (distance_factor - 0.05)))
@@ -235,7 +244,7 @@ class Game:
         self.set_signal_strength(min(max_signal, max(1, signal_change)))
 
         # Handle echo effects and scary texts
-        if nearest_source and distance < nearest_source.max_distance / 10:
+        if nearest_source and distance < self.max_distance_to_echo / 10:
             if time.time() - self.last_scary_text_time > 15 and random.random() < 0.1:
                 self.show_message(self.world.get_random_scary_text(), "scary")
 

@@ -26,6 +26,8 @@ class Graphics:
         self.empty_char = ' '
         self.echo_chars = '⛧⎊⏧⏣☈☇⚯⚮⛮⛥⛤⛢⚝⚹⚶⚸⭘⭙⭔⭓⍜⍛⍭⍱⍲ĄĪĘØÆĪŁ'
         self.disable_render = False
+        self.line_distortion_multiplier = 0.7
+        self.symbol_distortion_multiplier = 0.7
 
     def clear(self):
         if self.disable_render:
@@ -203,7 +205,7 @@ class Graphics:
                 del self.distortion_map[pos]
 
         # Generate new distortions
-        if random.random() < distortion_intensity * 0.8:
+        if random.random() < distortion_intensity * self.symbol_distortion_multiplier:
             for _ in range(int(self.width * self.height * distortion_intensity * 0.1)):
                 x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 2)
                 char = random.choice(chars_set)
@@ -211,7 +213,7 @@ class Graphics:
 
         # Update corrupted lines
         self.corrupted_lines = {line for line in self.corrupted_lines if random.random() > 0.2}
-        if random.random() < distortion_intensity * 0.8:
+        if random.random() < distortion_intensity * self.line_distortion_multiplier:
             new_corrupted_line = random.randint(0, self.height - 2)
             self.corrupted_lines.add(new_corrupted_line)
 
@@ -222,7 +224,7 @@ class Graphics:
                 del self.unseen_distortions[pos]
 
         # Generate new unseen area distortions
-        if random.random() < distortion_intensity * 0.8:
+        if random.random() < distortion_intensity * self.symbol_distortion_multiplier:
             x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 2)
             char = random.choice('▒▓█▄▀░')
             self.unseen_distortions[(x, y)] = [char, self.distortion_duration]

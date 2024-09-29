@@ -12,10 +12,9 @@ class EchoSource:
         self.speed = 1
         self.path = []
         self.path_update_cooldown = 0
-        self.max_distance = 200
         self.last_known_player_pos = (player.x, player.y)
         self.last_move_time = time.time()
-
+        self.move_cooldown = 0.33        
     def move(self, world):
         self.last_move_time = time.time()
         current_player_pos = (self.player.x, self.player.y)
@@ -88,12 +87,9 @@ class World:
         self.obstacles = set()
         self.items = {}
         self.generate_world()
-        self.text_triggers = {
-            (5, 5): ["You found a mysterious note.", "It reads: 'Beware of the shadows.'"],
-            (15, 10): ["A cold wind blows through the area.", "You hear whispers in the distance."],
-        }
+        self.text_triggers = {}
         self.echo_sources = []
-        self.generate_echo_sources()
+        #self.generate_echo_sources()
 
         self.scary_texts = [
             "⛧ You're mine now.",
@@ -224,8 +220,8 @@ class World:
     def generate_echo_sources(self):
         num_sources = 1  # You can adjust this number
         accessible_positions = self.get_accessible_positions()
-        min_distance = 10  # Minimum distance from player, adjust as needed
-        max_distance = 10
+        min_distance = 50  # Minimum distance from player, adjust as needed
+        max_distance = 60
         
         for _ in range(num_sources):
             if not accessible_positions:
@@ -268,7 +264,7 @@ class World:
         current_time = time.time()
         for source in self.echo_sources:            
             # Move once every X seconds
-            if current_time - source.last_move_time >= 0.66:
+            if current_time - source.last_move_time >= source.move_cooldown:
                 source.move(self)
 
     def get_nearest_echo_source(self, x, y):
