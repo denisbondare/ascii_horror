@@ -9,7 +9,7 @@ class EchoSource:
         self.x = x
         self.y = y
         self.player = player
-        self.speed = 2
+        self.speed = 1
         self.path = []
         self.path_update_cooldown = 0
         self.max_distance = 200
@@ -124,7 +124,7 @@ class World:
 
     def generate_world(self):
         # Generate cave-like terrain using Perlin noise
-        scale = 0.1
+        scale = 0.2
         octaves = 6
         persistence = 0.5
         lacunarity = 2.0
@@ -224,8 +224,8 @@ class World:
     def generate_echo_sources(self):
         num_sources = 1  # You can adjust this number
         accessible_positions = self.get_accessible_positions()
-        min_distance = 30  # Minimum distance from player, adjust as needed
-        max_distance = 40
+        min_distance = 10  # Minimum distance from player, adjust as needed
+        max_distance = 10
         
         for _ in range(num_sources):
             if not accessible_positions:
@@ -267,8 +267,8 @@ class World:
     def update_echo_sources(self):
         current_time = time.time()
         for source in self.echo_sources:            
-            # Move once every 2 seconds (adjust this value as needed)
-            if current_time - source.last_move_time >= 2:
+            # Move once every X seconds
+            if current_time - source.last_move_time >= 0.66:
                 source.move(self)
 
     def get_nearest_echo_source(self, x, y):

@@ -1,6 +1,8 @@
 import os
 import random
+import math
 import sys
+import time
 from utils import is_visible, generate_perlin_noise, get_wave_char
 
 class Graphics:
@@ -17,11 +19,12 @@ class Graphics:
         self.unseen_distortions = {}
         self.ripples = []
         self.corrupted_chars = '!#$%^&*()_-={}[]|\\:;"\'<>,.?/'
-        self.cursed_chars = '⛧⍟⎈⎊⏧⏣☈☇⚯⚮⛮⛥⛤⛢⚝⚹⚶⚸⛇⛈⭘⭙⭔⭓⍜⍛⍭⍱⍲'
+        self.cursed_chars = '⛧⎊⏧⏣☈☇⚯⚮⛮⛥⛤⛢⚝⚹⚶⚸⭘⭙⭔⭓⍜⍛⍭⍱⍲'
         self.cursed_words = ['ĄBØMINĄTIØN', 'DÆMØN', 'DĘVĮŁ', 'ĘVĪŁ', 'FĪĘND', 'HĄUNT', 'HØRRØR', 'PHĄNTĄSM', 'SPĪRĪT', 'WRĄĪTH', 'BŁĄSPHĘMY', 'CĄRNĄGĘ', 'DĘSĘCRĄTĪØN', 'ĘNTRÅĪŁS', 'FŁĘSHGØŁĘM', 'GĪBBĘT', 'HĘŁŁSPĄWN', 'ĪMMØŁĄTĪØN', 'MĄDNĘSS', 'NĘCRØPHĄGĘ', 'PĘSTĪŁĘNCĘ', 'QUĘŁCH', 'RĄVĄGĘ', 'SŁĄUGHTĘR', 'TØRMĘNT', 'UNDĘĄD', 'VĪSCĘRĄ', 'WRĘTCH', 'YØKĄĪ']
         self.obstacle_char = '▓'
         self.unseen_char = '░'
         self.empty_char = ' '
+        self.echo_chars = '⛧⎊⏧⏣☈☇⚯⚮⛮⛥⛤⛢⚝⚹⚶⚸⭘⭙⭔⭓⍜⍛⍭⍱⍲ĄĪĘØÆĪŁ'
         self.disable_render = False
 
     def clear(self):
@@ -134,11 +137,33 @@ class Graphics:
         self.draw_ripples(player)
                     
         for echo in world.echo_sources:
-            world_x = echo.x
-            world_y = echo.y
-            screen_x = world_x - player.x + player_screen_x
-            screen_y = world_y - player.y + player_screen_y
-            self.draw_char(screen_x, screen_y, '☥')        
+            world_x, world_y = echo.x, echo.y
+            for dy in range(-6, 7):
+                screen_y = world_y - player.y + player_screen_y + dy
+                if screen_y >= self.game_height:
+                    continue
+                for dx in range(-18, 19):
+                    screen_x = world_x - player.x + player_screen_x + dx
+                    
+                    
+                    # Use Perlin noise to create a fluctuating blob shape
+                    ping_pong_time = math.sin(time.time() % 15) + (time.time() % 100) * 0.02
+                    noise_value = generate_perlin_noise(dx, dy, ping_pong_time, scale=0.045, octaves=6, persistence=0.6, lacunarity=3.0)
+                    
+                    # Determine if this position should be part of the echo
+                    # Calculate distance from center
+                    distance_from_center = math.sqrt((dx/3)**2 + dy**2)
+                    # Adjust threshold based on distance
+                    threshold = 0 + (distance_from_center / 15) * 0.25  # Adjust multiplier as needed
+                    if noise_value > threshold:
+                        # Use world coordinates to seed the random choice
+                        time_random_shift = int(time.time()*10) % len(self.echo_chars)
+                        pattern_index = ((world_x+dx)*100 + (world_y+dy)*100 + time_random_shift) % len(self.echo_chars)
+                        
+                        char = self.echo_chars[pattern_index]
+                        self.draw_char(screen_x, screen_y, char)
+                            
+
         
         self.draw_char(player_screen_x, player_screen_y, player.char)
 
@@ -178,7 +203,7 @@ class Graphics:
                 del self.distortion_map[pos]
 
         # Generate new distortions
-        if random.random() < distortion_intensity * 0.9:
+        if random.random() < distortion_intensity * 0.8:
             for _ in range(int(self.width * self.height * distortion_intensity * 0.1)):
                 x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 2)
                 char = random.choice(chars_set)
@@ -186,7 +211,7 @@ class Graphics:
 
         # Update corrupted lines
         self.corrupted_lines = {line for line in self.corrupted_lines if random.random() > 0.2}
-        if random.random() < distortion_intensity * 0.9:
+        if random.random() < distortion_intensity * 0.8:
             new_corrupted_line = random.randint(0, self.height - 2)
             self.corrupted_lines.add(new_corrupted_line)
 
@@ -197,7 +222,7 @@ class Graphics:
                 del self.unseen_distortions[pos]
 
         # Generate new unseen area distortions
-        if random.random() < distortion_intensity * 0.9:
+        if random.random() < distortion_intensity * 0.8:
             x, y = random.randint(0, self.width - 1), random.randint(0, self.height - 2)
             char = random.choice('▒▓█▄▀░')
             self.unseen_distortions[(x, y)] = [char, self.distortion_duration]

@@ -18,7 +18,7 @@ class Game:
         self.world = World(256, 256, self.player)  # Much larger world
         self.sound_system = SoundSystem()
         self.running = True
-        self.visibility_radius = 10
+        self.visibility_radius = 5
         self.step_counter = 0
         self.sound_system.play_music("ambient_horror")
         self.vertical_step = 0
