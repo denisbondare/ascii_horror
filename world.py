@@ -9,7 +9,7 @@ class EchoSource:
         self.x = x
         self.y = y
         self.player = player
-        self.speed = 1
+        self.speed = 2
         self.path = []
         self.path_update_cooldown = 0
         self.max_distance = 200
@@ -21,7 +21,7 @@ class EchoSource:
         current_player_pos = (self.player.x, self.player.y)
         
         # Check if player has moved significantly
-        if distance(self.last_known_player_pos[0], self.last_known_player_pos[1], current_player_pos[0], current_player_pos[1]) > 10:
+        if distance(self.last_known_player_pos[0], self.last_known_player_pos[1], current_player_pos[0], current_player_pos[1]) > 3:
             self.update_path(world)
             self.last_known_player_pos = current_player_pos
         
@@ -215,6 +215,11 @@ class World:
         for (x, y), trigger in self.text_triggers.items():
             new_text_triggers[(x - dx, y - dy)] = trigger
         self.text_triggers = new_text_triggers
+
+        # Move echo sources
+        for source in self.echo_sources:
+            source.x -= dx
+            source.y -= dy
 
     def generate_echo_sources(self):
         num_sources = 1  # You can adjust this number

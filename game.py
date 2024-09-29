@@ -90,7 +90,7 @@ class Game:
         dx, dy = 0, 0
         moved = False
         self.movement_step += 1
-        if self.movement_step >= 1:  # Slow down overall movement
+        if self.movement_step >= 3:  # Slow down overall movement
             if keyboard.is_pressed('up') and self.player.y > 1:
                 self.vertical_step += 1
                 if self.vertical_step >= 3:  # Further slow down vertical movement
