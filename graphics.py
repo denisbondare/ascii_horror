@@ -4,6 +4,7 @@ import math
 import sys
 import time
 from utils import is_visible, generate_perlin_noise, get_wave_char
+import keyboard
 
 class Graphics:
     def __init__(self, width, height):
@@ -250,3 +251,31 @@ class Graphics:
                         screen_y = y - player.y + self.height // 2
                         self.draw_char(screen_x, screen_y, '~')
 
+    def load_ascii_video(self, file_path):
+        with open(file_path, 'r', encoding='utf-8') as f:
+            fps = int(f.readline().strip())
+            frame_width = int(f.readline().strip())
+            frame_height = int(f.readline().strip())
+            frames = [line.strip() for line in f.readlines()]
+        return fps, frame_width, frame_height, frames
+
+    def play_ascii_video(self, file_path):
+        fps, frame_width, frame_height, frames = self.load_ascii_video(file_path)
+        
+        start_x = max(0, (self.width - frame_width) // 2)
+        start_y = max(0, (self.height - frame_height) // 2)
+        
+        for frame in frames:
+            self.clear()
+            for y in range(min(frame_height, self.height)):
+                for x in range(min(frame_width, self.width)):
+                    char_index = y * frame_width + x
+                    if char_index < len(frame):
+                        char = frame[char_index]
+                        self.draw_char(start_x + x, start_y + y, char)
+            self.render()
+            time.sleep(1 / fps)
+            
+            # Check for space key press to exit video playback
+            if keyboard.is_pressed('space'):
+                break

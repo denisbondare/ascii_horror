@@ -3,11 +3,15 @@ import time
 import math
 import pygame
 import random
+import colorama
 from graphics import Graphics
 from player import Player
 from world import World
 from utils import get_random_position, distance
 from sounds import SoundSystem
+from video_converter import convert_video_to_ascii
+
+colorama.init(autoreset=True)
 
 class Game:
     def __init__(self, width, height):
@@ -36,6 +40,7 @@ class Game:
             "Caution: Unusual readings detected.",
             "Press Enter to initiate operation."
         ]
+        self.intro_text = ["Skip"]
         self.show_intro = True
         self.text_fully_displayed = False
         self.samples_collected = 0
@@ -69,6 +74,8 @@ class Game:
         self.echo_creation_delay = 30
         self.max_distance_to_echo = 200
         self.slow_down_step = 7
+        self.video_playing = False
+        self.video_file = None
         
     def set_temperature(self, value):
         self.temperature = value
@@ -80,6 +87,11 @@ class Game:
         self.sound_system.update_signal_strength(self.signal_strength)
 
     def handle_input(self):
+        if self.video_playing:
+            if keyboard.is_pressed('space'):
+                self.video_playing = False
+            return
+
         if self.text_display_active:
             if keyboard.is_pressed('enter'):
                 if self.text_fully_displayed:
@@ -124,6 +136,8 @@ class Game:
             #elif keyboard.is_pressed('l'):  # 'l' for lose
             #    self.signal_strength = 1
             #    self.low_signal_start_time = time.time() - 6  # Force immediate loss
+            elif keyboard.is_pressed('v'):  # Add this to trigger video playback
+                self.play_video("output_ascii_video.txt")
 
             if moved:
                 self.movement_step = 0
@@ -136,6 +150,11 @@ class Game:
                     self.sound_system.play_sound("footstep")
 
     def update(self):
+        if self.video_playing:
+            self.graphics.play_ascii_video(self.video_file)
+            self.video_playing = False
+            return
+
         if self.game_over or self.game_won:
             return
 
@@ -318,6 +337,9 @@ class Game:
                 self.message_type = None
 
     def render(self):
+        if self.video_playing:
+            return
+
         if self.game_won:
             self.render_win_screen()
         elif self.game_over:
@@ -379,7 +401,8 @@ class Game:
             self.last_update_time = current_time
             self.handle_input()
             self.update()
-            self.render()
+            if not self.video_playing:
+                self.render()
 
             if self.game_over or self.game_won:
                 choice = self.handle_end_game_input()
@@ -414,6 +437,14 @@ class Game:
             self.current_text = ""
             self.text_index = 0
             self.text_fully_displayed = False
+
+    def play_video(self, video_file):
+        self.video_playing = True
+        self.video_file = video_file
+
+    def convert_and_play_video(self, input_video, output_file):
+        convert_video_to_ascii(input_video, output_file, width=self.width)
+        self.play_video(output_file)
 
 def main_menu():
     graphics = Graphics(42, 22)
