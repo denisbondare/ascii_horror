@@ -136,8 +136,8 @@ class Game:
             #elif keyboard.is_pressed('l'):  # 'l' for lose
             #    self.signal_strength = 1
             #    self.low_signal_start_time = time.time() - 6  # Force immediate loss
-            elif keyboard.is_pressed('v'):  # Add this to trigger video playback
-                self.play_video("output_ascii_video.txt")
+            #elif keyboard.is_pressed('v'):  # Add this to trigger video playback
+            #    self.play_video("output_ascii_video.txt")
 
             if moved:
                 self.movement_step = 0
