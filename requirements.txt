@@ -1,0 +1,8 @@
+keyboard
+pygame
+colorama
+numpy
+scipy
+noise
+opencv-python
+Pillow
