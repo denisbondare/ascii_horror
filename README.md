@@ -1,3 +1,5 @@
+![Demo animation](demo.gif)
+
 Story: in the 80s, a deep cave was found but couldn't be explored. A robot was sent 3km down. You're the engineer controlling it from the surface.
 
 To start:
