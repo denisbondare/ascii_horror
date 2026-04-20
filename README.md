@@ -7,7 +7,7 @@ Story: in the 80s, a deep cave was found but couldn't be explored. A robot was s
 
 ### Starting The Game
 
-```sh
+```bash
 pip install -r requirements.txt
 python game.py
 ```
